@@ -17,7 +17,7 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// <summary>
         /// The static integer field.
         /// </summary>
-        public static int StaticNumberField = 1;
+        public static int StaticNumberField;
 #pragma warning restore S2223 // Non-constant static fields should not be visible
 #pragma warning restore CA2211 // Non-constant fields should not be visible
 #pragma warning restore SA1401 // Fields must be private
@@ -29,7 +29,7 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// <summary>
         /// The object field.
         /// </summary>
-        public object ObjectField = "some string";
+        public object ObjectField;
 #pragma warning restore CA1051 // Do not declare visible instance fields
 #pragma warning restore SA1401 // Fields must be private
 #pragma warning restore S1104 // Fields should not have public accessibility
@@ -40,25 +40,27 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// <summary>
         /// The number field.
         /// </summary>
-        public int NumberField = 2;
+        public int NumberField;
 #pragma warning restore CA1051 // Do not declare visible instance fields
 #pragma warning restore SA1401 // Fields must be private
 #pragma warning restore S1104 // Fields should not have public accessibility
 
+#pragma warning disable S1450 // Private fields only used as local variables in methods should become local variables
         /// <summary>
         /// The static int set property.
         /// </summary>
-        private static int staticIntSetProperty = 3;
+        private static int staticIntSetProperty;
+#pragma warning restore S1450 // Private fields only used as local variables in methods should become local variables
 
         /// <summary>
         /// Gets 222.
         /// </summary>
-        public static int StaticNumberGetProperty { get; } = 4;
+        public static int StaticNumberGetProperty { get; }
 
         /// <summary>
         /// Gets or sets the static number.
         /// </summary>
-        public static int StaticNumberProperty { get; set; } = 5;
+        public static int StaticNumberProperty { get; set; }
 
 #pragma warning disable S2376 // Write-only properties should not be used
 #pragma warning disable CA1044 // Properties should not be write only
@@ -75,18 +77,18 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// <summary>
         /// Gets or sets the number.
         /// </summary>
-        public int NumberProperty { get; set; } = 6;
+        public int NumberProperty { get; set; }
 
         /// <summary>
         /// Gets or sets the object.
         /// </summary>
-        public object ObjectProperty { get; set; } = 7;
+        public object ObjectProperty { get; set; }
 
         /// <summary>
         /// Statics the function.
         /// </summary>
         /// <returns>111.</returns>
-        public static int StaticFunction() => 8;
+        public static int StaticFunction() => 1;
 
         /// <summary>
         /// Statics the action.
@@ -100,7 +102,7 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// Methods this instance.
         /// </summary>
         /// <returns>111.</returns>
-        public virtual int Method() => 9;
+        public virtual int Method() => 2;
 
         /// <summary>
         /// Adds the specified left.
@@ -109,6 +111,14 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// <param name="right">The right.</param>
         /// <returns><paramref name="left"/> + <paramref name="right"/>.</returns>
         public virtual int Add(int left, int right) => left + right;
+
+        /// <summary>
+        /// Adds the specified left.
+        /// </summary>
+        /// <param name="left">The left.</param>
+        /// <param name="right">The right.</param>
+        /// <returns><paramref name="left"/> + <paramref name="right"/>.</returns>
+        public virtual double Add(double left, double right) => left + right;
 
         /// <summary>
         /// Objects the function.

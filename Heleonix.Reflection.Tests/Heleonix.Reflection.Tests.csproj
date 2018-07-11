@@ -30,8 +30,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Heleonix.Testing.NUnit" Version="1.2.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.6.0" />
+    <PackageReference Include="Heleonix.Testing.NUnit" Version="1.4.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.7.2" />
     <PackageReference Include="moq" Version="4.8.2" />
     <PackageReference Include="codecracker.CSharp" Version="1.0.3" />
     <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.6.0" />

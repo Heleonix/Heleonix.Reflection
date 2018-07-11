@@ -1,10 +1,12 @@
 <Project>
   <PropertyGroup>
-    <Version>1.0.0</Version>
-    <PackageReleaseNotes>Split from the Heleonix.Utilities</PackageReleaseNotes>
+    <Version>2.0.0</Version>
+    <PackageReleaseNotes>
+      Added getter and setter generation; rewritten GetInfo, Get, Set, Invoke to be more performant
+    </PackageReleaseNotes>
 
-    <Description>Provides reflection functionality to search and invoke type members</Description>
-    <PackageTags>Heleonix reflection invoke get set getinfo find-member member-path</PackageTags>
+    <Description>Provides reflection functionality to search and invoke type members, search types, generate delegates etc.</Description>
+    <PackageTags>Heleonix reflection reflector invoke getter setter get set getinfo find member</PackageTags>
 
     <Authors>Heleonix - Hennadii Lutsyshyn</Authors>
     <Copyright>Copyright (c) 2017-present Heleonix - Hennadii Lutsyshyn</Copyright>
