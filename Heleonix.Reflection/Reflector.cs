@@ -10,7 +10,6 @@ namespace Heleonix.Reflection
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
-    using System.Text.RegularExpressions;
 
     /// <summary>
     /// Provides functionality for working with reflection.
@@ -24,134 +23,120 @@ namespace Heleonix.Reflection
             = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public;
 
         /// <summary>
-        /// The dot char to split strings.
+        /// The property OR field flags to determine member types if they're property or field.
         /// </summary>
-        private static readonly char[] DotSplitChar = new[] { '.' };
+        private const MemberTypes PropertyOrFieldMemberTypes = MemberTypes.Property | MemberTypes.Field;
+
+#pragma warning disable CA1825 // Avoid zero-length array allocations.
+        /// <summary>
+        /// The empty member information.
+        /// </summary>
+        private static readonly MemberInfo[] EmptyMemberInfo = new MemberInfo[0];
+#pragma warning restore CA1825 // Avoid zero-length array allocations.
 
         /// <summary>
         /// Gets information about members.
         /// </summary>
         /// <param name="instance">A root object.</param>
         /// <param name="type">A type of a root object.
-        /// If <paramref name="instance"/> is not <c>null</c>, then its typeis used instead.
+        /// If <paramref name="instance"/> is not <c>null</c>, then its type is used instead.
         /// </param>
         /// <param name="memberPath">A path to a member.</param>
-        /// <param name="paramTypes">Types of parameters to find methods or constructors.
+        /// <param name="parameterTypes">Types of parameters to find methods or constructors.
         /// If <c>null</c> is passed, then types of parameters are ignored.</param>
-        /// <param name="requireIntermediateValues">
-        /// Determines whether intermediate members within the given path must not be <c>null</c>.
-        /// </param>
         /// <param name="bindingFlags">Binding flags to find members.</param>
-        /// <exception cref="AmbiguousMatchException">
-        /// More than one member is found on the intermediate path of the <paramref name="memberPath"/>.
-        /// </exception>
-        /// <exception cref="TargetInvocationException">
+        /// <exception cref="TargetException">
         /// An intermediate member on a path thrown an exception. See inner exception for details.
         /// </exception>
-        /// <exception cref="InvalidOperationException">
-        /// Failed to invoke an intermediate member on a path. See inner exception for details.
-        /// </exception>
-        /// <returns>Information about found members or <c>null</c> if no members are found
-        /// or they are not reachable or they are not accessible.
+        /// <returns>
+        /// Information about found members or an empty array if no members are found
+        /// or
+        /// they are not reachable
+        /// or
+        /// they are not accessible.
         /// </returns>
         /// <example>
         /// var dt = DateTime.Now;
         ///
-        /// var info = Reflector.GetInfo(instance: dt, type: null, memberPath: "TimeOfDay.Negate", requireIntermediateValues: true);
+        /// var info = Reflector.GetInfo(instance: dt, type: null, memberPath: "TimeOfDay.Negate");
         ///
-        /// // info.ContainerObject == dt;
-        /// // info.ContainerType == typeof(DateTime);
-        /// // info.Members[0]: MethodInfo about the Negate method
+        /// // info[0].Name == "Negate";
+        /// // info[0].MemberType == MemberTypes.Property;
         /// </example>
-        /// <example>
-        /// var tuple = new Tuple{Tuple{int}}(null);
-        ///
-        /// var info1 = Reflector.GetInfo(tuple, null, "Item1.Item1", requireIntermediateValues: true);
-        ///
-        /// // info1 == null
-        ///
-        /// var info2 = Reflector.GetInfo(tuple, null, "Item1.Item1", requireIntermediateValues: false);
-        ///
-        /// // info2 == typeof(int)
-        /// </example>
-        public static MembersInfo GetInfo(
+        public static MemberInfo[] GetInfo(
             object instance,
             Type type,
             string memberPath,
-            Type[] paramTypes = null,
-            bool requireIntermediateValues = false,
+            Type[] parameterTypes = null,
             BindingFlags bindingFlags = DefaultBindingFlags)
         {
-            if (instance == null && type == null)
+            if ((instance == null && type == null) || string.IsNullOrEmpty(memberPath))
             {
-                return null;
+                return EmptyMemberInfo;
             }
 
-            if (string.IsNullOrEmpty(memberPath))
+            var container = instance;
+            var containerType = container?.GetType() ?? type;
+            MemberInfo[] memberInfos = null;
+
+            while (true)
             {
-                return null;
-            }
+                var dot = memberPath.IndexOf('.');
+                var size = (dot == -1) ? memberPath.Length : dot;
+                var prop = memberPath.Substring(0, size);
 
-            var foundMembers = new MembersInfo { ContainerObject = instance, ContainerType = type };
-            var intermediateFoundMember = new MembersInfo();
+                if (dot == -1 && prop.Equals("ctor", StringComparison.OrdinalIgnoreCase))
+                {
+                    prop = ".ctor";
+                }
 
-            if (foundMembers.ContainerObject != null)
-            {
-                foundMembers.ContainerType = foundMembers.ContainerObject.GetType();
-            }
-
-            var paths = memberPath.Split(DotSplitChar, StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var path in paths.Take(paths.Length - 1))
-            {
-                var memberInfo = foundMembers
-                    .ContainerType
+                memberInfos = containerType
                     .GetTypeInfo()
-                    .GetMember(path, MemberTypes.Field | MemberTypes.Property, bindingFlags)
-                    .FirstOrDefault();
+                    .GetMember(
+                        prop,
+                        MemberTypes.Field | MemberTypes.Property | MemberTypes.Method | MemberTypes.Constructor,
+                        bindingFlags);
 
-                if (memberInfo == null)
+                if (dot == -1)
                 {
-                    return null;
+                    break;
                 }
 
-                intermediateFoundMember.Members.Clear();
-                intermediateFoundMember.Members.Add(memberInfo);
-                intermediateFoundMember.ContainerObject = foundMembers.ContainerObject;
+                var memberInfo = memberInfos != null && memberInfos.Length > 0 ? memberInfos[0] : null;
 
-                Get(intermediateFoundMember, out object intermediateMemberInstance);
-
-                if (requireIntermediateValues && intermediateMemberInstance == null)
+                if (memberInfo is PropertyInfo propertyInfo
+                    && (container != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
                 {
-                    return null;
+                    container = propertyInfo.GetValue(container);
+                    containerType = container?.GetType() ?? propertyInfo.PropertyType;
+                }
+                else if (memberInfo is FieldInfo fieldInfo && (container != null || fieldInfo.IsStatic))
+                {
+                    container = fieldInfo.GetValue(container);
+                    containerType = container?.GetType() ?? fieldInfo.FieldType;
+                }
+                else
+                {
+                    return EmptyMemberInfo;
                 }
 
-                foundMembers.ContainerObject = intermediateMemberInstance;
-
-                foundMembers.ContainerType = foundMembers.ContainerObject?.GetType()
-                    ?? (memberInfo.MemberType == MemberTypes.Property
-                        ? ((PropertyInfo)memberInfo).PropertyType
-                        : ((FieldInfo)memberInfo).FieldType);
+                memberPath = memberPath.Substring(prop.Length + 1);
             }
 
-            if (paths[paths.Length - 1].EndsWith("ctor", StringComparison.OrdinalIgnoreCase))
+            var matchedMemberInfo = new List<MemberInfo>();
+
+            for (int i = memberInfos.Length - 1; i >= 0; i--)
             {
-                paths[paths.Length - 1] = "." + paths[paths.Length - 1];
+                var mi = memberInfos[i];
+
+                if (PropertyOrFieldMemberTypes.HasFlag(mi.MemberType)
+                    || (mi is MethodBase mbi && ParameterTypesMatch(mbi.GetParameters(), parameterTypes)))
+                {
+                    matchedMemberInfo.Add(mi);
+                }
             }
 
-            var membersInfo = foundMembers.ContainerType.GetTypeInfo().GetMembers(bindingFlags)
-                .Where(mi => mi.Name == paths[paths.Length - 1]);
-
-            membersInfo = membersInfo.Where(mi =>
-                mi.MemberType == MemberTypes.Property || mi.MemberType == MemberTypes.Field
-                || (mi.MemberType == MemberTypes.Method
-                    && ParameterTypesMatch(((MethodInfo)mi).GetParameters(), paramTypes))
-                || (mi.MemberType == MemberTypes.Constructor
-                    && ParameterTypesMatch(((ConstructorInfo)mi).GetParameters(), paramTypes)));
-
-            foundMembers.Members.AddRange(membersInfo);
-
-            return foundMembers.Members.Count == 0 ? null : foundMembers;
+            return matchedMemberInfo.ToArray();
         }
 
         /// <summary>
@@ -160,16 +145,15 @@ namespace Heleonix.Reflection
         /// <param name="info">The property information.</param>
         /// <returns><c>true</c> if the specified property is static; otherwise, <c>false</c>.</returns>
         public static bool IsStatic(PropertyInfo info)
-            => (info != null && info.CanRead && info.GetMethod.IsStatic)
-            || (info != null && info.CanWrite && info.SetMethod.IsStatic);
+            => info != null && ((info.CanRead && info.GetMethod.IsStatic) || (info.CanWrite && info.SetMethod.IsStatic));
 
 #if !NETSTANDARD1_6
         /// <summary>
         /// Gets the types by a simple name (a name without namespace) in the calling assembly and in the assemblies loaded into the current domain.
         /// </summary>
         /// <param name="simpleName">A simple name of types to load.</param>
-        /// <returns>A list of found types.</returns>
-        public static IList<Type> GetTypes(string simpleName)
+        /// <returns>An array of found types.</returns>
+        public static Type[] GetTypes(string simpleName)
         {
             var types = Assembly.GetCallingAssembly().GetTypes().Where(t => t.Name == simpleName).ToList();
 
@@ -177,7 +161,7 @@ namespace Heleonix.Reflection
 
             types.AddRange(loadedAssemblies.SelectMany(a => a.GetTypes().Where(t => t.Name == simpleName)));
 
-            return types;
+            return types.ToArray();
         }
 #endif
 
@@ -185,213 +169,638 @@ namespace Heleonix.Reflection
         /// Gets a path to a member which returns some type.
         /// </summary>
         /// <typeparam name="TObject">A type of an object.</typeparam>
-        /// <param name="expression">An expression to find a member.</param>
+        /// <param name="memberPath">An expression to find a member.</param>
         /// <returns>A path to a member.</returns>
         /// <example>
         /// var path = Reflector.GetMemberPath{DateTime}(dt => dt.TimeOfDay.Negate());
         ///
         /// // path: "TimeOfDay.Negate"
         /// </example>
-        public static string GetMemberPath<TObject>(Expression<Func<TObject, object>> expression)
-            => GetMemberPath(expression as Expression);
+        public static string GetMemberPath<TObject>(Expression<Func<TObject, object>> memberPath)
+            => GetMemberPath(memberPath as LambdaExpression);
 
         /// <summary>
         /// Gets a path to a member which returns <c>void</c>.
         /// </summary>
         /// <typeparam name="TObject">A type of an object.</typeparam>
-        /// <param name="expression">An expression to find a member.</param>
+        /// <param name="memberPath">An expression to find a member.</param>
         /// <returns>A path to a member.</returns>
         /// <example>
         /// var path = Reflector.GetMemberPath{List{int}}(list => list.Clear());
         ///
         /// // path: "Clear"
         /// </example>
-        public static string GetMemberPath<TObject>(Expression<Action<TObject>> expression)
-            => GetMemberPath(expression as Expression);
+        public static string GetMemberPath<TObject>(Expression<Action<TObject>> memberPath)
+            => GetMemberPath(memberPath as LambdaExpression);
 
         /// <summary>
-        /// Gets a path to a member using the specified (probably dynamically built) expression,
-        /// which must be of type or inherited from the <see cref="LambdaExpression"/>.
+        /// Gets a path to a member using the specified (probably dynamically built) expression.
         /// </summary>
-        /// <param name="expression">An expression to find a member.</param>
-        /// <returns>A name of a member.</returns>
-        public static string GetMemberPath(Expression expression)
-            => Regex.Replace(
-                string.Join(
-                ".",
-                (expression as LambdaExpression)?.Body.ToString().Split('.').Skip(1) ?? Enumerable.Empty<string>()),
-                @"\(.*\)",
-                string.Empty);
+        /// <param name="memberPath">An expression to find a member.</param>
+        /// <returns>
+        /// A name of a member
+        /// or
+        /// an empty string if <paramref name="memberPath"/> is <c>null</c>.
+        /// .</returns>
+        public static string GetMemberPath(LambdaExpression memberPath)
+        {
+            if (memberPath == null)
+            {
+                return string.Empty;
+            }
+
+            var path = memberPath.Body.ToString();
+
+            // obj => obj.Item.SubItem.SubSubItem
+            //           ^ 10
+            var pathIndex = path.IndexOf('.');
+
+            if (pathIndex <= 0)
+            {
+                return string.Empty;
+            }
+
+            // obj => obj.Item.SubItem.SubSubMethod(int)
+            //                                  36 ^   ^ 40
+            var parenthesesIndex = path.LastIndexOf('(');
+
+            parenthesesIndex = parenthesesIndex == -1 ? path.Length : parenthesesIndex;
+
+            return path.Substring(pathIndex + 1, parenthesesIndex - 1 - pathIndex);
+        }
 
         /// <summary>
-        /// Sets a provided value to the provided <see cref="MembersInfo"/>.
+        /// Gets a value by the provided path.
         /// </summary>
-        /// <param name="info">The member information.</param>
-        /// <param name="value">A value to set.</param>
-        /// <exception cref="TargetInvocationException">
+        /// <typeparam name="TReturn">A type of a value to be set with the target value.</typeparam>
+        /// <param name="instance">A root object.</param>
+        /// <param name="type">A type of a root object.
+        /// If <paramref name="instance"/> is not <c>null</c>, then its type is used instead.
+        /// </param>
+        /// <param name="memberPath">A path to a member.</param>
+        /// <param name="value">A gotten value.</param>
+        /// <param name="bindingFlags">Binding flags to find members.</param>
+        /// <exception cref="TargetException">
         /// Target thrown an exception during execution. See inner exception for details.
         /// </exception>
-        /// <exception cref="InvalidOperationException">
-        /// Could not invoke a member for current object's state. See inner exception for details.
-        /// </exception>
         /// <returns>
-        /// <c>true</c> in case of success, otherwise <c>false</c> if the <paramref name="info"/> is <c>null</c>
-        /// or <see cref="MembersInfo.ContainerObject"/> is <c>null</c> and a member is not static
-        /// or <see cref="PropertyInfo.CanWrite"/> is <c>false</c>.
+        /// <c>true</c> in case of success, otherwise <c>false</c> if
+        /// <paramref name="memberPath"/> is <c>null</c> or empty
+        /// or
+        /// <paramref name="instance"/> is <c>null</c> and <paramref name="type"/> is <c>null</c>
+        /// or
+        /// a target member or one of intermediate members was not found
+        /// or
+        /// a member is not static and its container is null
+        /// or
+        /// a target member or an intermediate member is neither <see cref="PropertyInfo"/> nor <see cref="FieldInfo"/>
+        /// or
+        /// a target value is not of type <typeparamref name="TReturn"/>.
         /// </returns>
-        public static bool Set(MembersInfo info, object value)
+        /// <example>
+        /// var success = Reflector.Get(DateTime.Now, null, "TimeOfDay.Hours", out int value);
+        ///
+        /// // success == true;
+        /// // value == DateTime.Now.TimeOfDay.Hours;
+        /// </example>
+        public static bool Get<TReturn>(
+            object instance,
+            Type type,
+            string memberPath,
+            out TReturn value,
+            BindingFlags bindingFlags = DefaultBindingFlags)
         {
-            try
+            if ((instance == null && type == null) || string.IsNullOrEmpty(memberPath))
             {
-                var memberInfo = info?.Members.FirstOrDefault();
-
-                if (memberInfo is PropertyInfo propertyInfo
-                    && (info.ContainerObject != null || IsStatic(propertyInfo)) && propertyInfo.CanWrite)
-                {
-                    propertyInfo.SetValue(info.ContainerObject, value);
-
-                    return true;
-                }
-                else if (memberInfo is FieldInfo fieldInfo && (info.ContainerObject != null || fieldInfo.IsStatic))
-                {
-                    fieldInfo.SetValue(info.ContainerObject, value);
-
-                    return true;
-                }
+                value = default;
 
                 return false;
             }
-            catch (TargetInvocationException)
+
+            var container = instance;
+            var containerType = container?.GetType() ?? type;
+            MemberInfo memberInfo = null;
+
+            while (memberPath.Length > 0)
             {
-                throw;
+                var dot = memberPath.IndexOf('.');
+                var size = (dot == -1) ? memberPath.Length : dot;
+                var prop = memberPath.Substring(0, size);
+
+                var members = containerType
+                    .GetTypeInfo()
+                    .GetMember(prop, MemberTypes.Field | MemberTypes.Property, bindingFlags);
+
+                memberInfo = members != null && members.Length > 0 ? members[0] : null;
+
+                if (memberInfo is PropertyInfo propertyInfo
+                    && (container != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
+                {
+                    container = propertyInfo.GetValue(container);
+                    containerType = container?.GetType() ?? propertyInfo.PropertyType;
+                }
+                else if (memberInfo is FieldInfo fieldInfo && (container != null || fieldInfo.IsStatic))
+                {
+                    container = fieldInfo.GetValue(container);
+                    containerType = container?.GetType() ?? fieldInfo.FieldType;
+                }
+                else
+                {
+                    value = default;
+
+                    return false;
+                }
+
+                if (dot == -1)
+                {
+                    break;
+                }
+
+                memberPath = memberPath.Substring(prop.Length + 1);
             }
-            catch (Exception e)
+
+            if (container == null)
             {
-                throw new InvalidOperationException(e.Message, e);
+                value = default;
+
+                return true;
+            }
+            else if (container is TReturn)
+            {
+                value = (TReturn)container;
+
+                return true;
+            }
+            else
+            {
+                value = default;
+
+                return false;
             }
         }
 
         /// <summary>
-        /// Gets a value of the provided <see cref="MembersInfo"/>.
+        /// Sets a provided value by the provided path.
         /// </summary>
-        /// <typeparam name="TReturn">A type to cast return value to.</typeparam>
-        /// <param name="info">The member information.</param>
-        /// <param name="value">A returned value.</param>
-        /// <exception cref="TargetInvocationException">
+        /// <param name="instance">A root object.</param>
+        /// <param name="type">A type of a root object.
+        /// If <paramref name="instance"/> is not <c>null</c>, then its type is used instead.
+        /// </param>
+        /// <param name="memberPath">A path to a member.</param>
+        /// <param name="value">A value to be set.</param>
+        /// <param name="bindingFlags">Binding flags to find members.</param>
+        /// <exception cref="TargetException">
         /// Target thrown an exception during execution. See inner exception for details.
         /// </exception>
-        /// <exception cref="InvalidOperationException">
-        /// Could not invoke a member for current object's state. See inner exception for details.
-        /// </exception>
         /// <returns>
-        /// <c>true</c> in case of success, otherwise <c>false</c> if an <paramref name="info"/> is <c>null</c>
-        /// or the <see cref="MembersInfo.ContainerObject"/> is <c>null</c> and a member is not static
-        /// or the return value is not of type <typeparamref name="TReturn"/>
-        /// or <see cref="PropertyInfo.CanRead"/> is <c>false</c>.
+        /// <c>true</c> in case of success, otherwise <c>false</c> if
+        /// <paramref name="memberPath"/> is <c>null</c> or empty
+        /// or
+        /// <paramref name="instance"/> is <c>null</c> and <paramref name="type"/> is <c>null</c>
+        /// or
+        /// a target member or one of intermediate members was not found
+        /// or
+        /// a member is not static and its container is null
+        /// or
+        /// a target member or an intermediate member is neither <see cref="PropertyInfo"/> nor <see cref="FieldInfo"/>.
         /// </returns>
-        public static bool Get<TReturn>(MembersInfo info, out TReturn value)
+        /// <example>
+        /// public class Root { public Child Child { get; set; } = new Child(); }
+        /// public class Child { public int Value { get; set; } }
+        ///
+        /// var root = new Root();
+        ///
+        /// var success = Reflector.Set(root, null, "Child.Value", 12345);
+        ///
+        /// // success == true;
+        /// // root.Child.Value == 12345;
+        /// </example>
+        public static bool Set(
+            object instance,
+            Type type,
+            string memberPath,
+            object value,
+            BindingFlags bindingFlags = DefaultBindingFlags)
         {
-            try
+            if ((instance == null && type == null) || string.IsNullOrEmpty(memberPath))
             {
-                var memberInfo = info?.Members.FirstOrDefault();
+                return false;
+            }
 
-                object rawValue = null;
+            var container = instance;
+            var containerType = container?.GetType() ?? type;
+            MemberInfo memberInfo = null;
 
-                value = default;
+            while (true)
+            {
+                var dot = memberPath.IndexOf('.');
+                var size = (dot == -1) ? memberPath.Length : dot;
+                var prop = memberPath.Substring(0, size);
+
+                var members = containerType
+                    .GetTypeInfo()
+                    .GetMember(prop, MemberTypes.Field | MemberTypes.Property, bindingFlags);
+
+                memberInfo = members != null && members.Length > 0 ? members[0] : null;
+
+                if (dot == -1)
+                {
+                    break;
+                }
 
                 if (memberInfo is PropertyInfo propertyInfo
-                    && (info.ContainerObject != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
+                    && (container != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
                 {
-                    rawValue = propertyInfo.GetValue(info.ContainerObject);
+                    container = propertyInfo.GetValue(container);
+                    containerType = container?.GetType() ?? propertyInfo.PropertyType;
                 }
-                else if (memberInfo is FieldInfo fieldInfo && (info.ContainerObject != null || fieldInfo.IsStatic))
+                else if (memberInfo is FieldInfo fieldInfo && (container != null || fieldInfo.IsStatic))
                 {
-                    rawValue = fieldInfo.GetValue(info.ContainerObject);
+                    container = fieldInfo.GetValue(container);
+                    containerType = container?.GetType() ?? fieldInfo.FieldType;
                 }
                 else
                 {
                     return false;
                 }
 
-                if (rawValue == null)
-                {
-                    return true;
-                }
-
-                if (rawValue is TReturn)
-                {
-                    value = (TReturn)rawValue;
-
-                    return true;
-                }
-
-                return false;
+                memberPath = memberPath.Substring(prop.Length + 1);
             }
-            catch (TargetInvocationException)
+
+            if (memberInfo is PropertyInfo pi && (container != null || IsStatic(pi)) && pi.CanWrite)
             {
-                throw;
+                pi.SetValue(container, value);
+
+                return true;
             }
-            catch (Exception e)
+            else if (memberInfo is FieldInfo fi && (container != null || fi.IsStatic))
             {
-                throw new InvalidOperationException(e.Message, e);
+                fi.SetValue(container, value);
+
+                return true;
             }
+
+            return false;
         }
 
         /// <summary>
-        /// Invokes a method provided by <paramref name="info"/> with specified arguments.
+        /// Invokes a method or constructor by the provided path.
+        /// Use "ctor" to invoke constructors, i.e."Item.SubItem.ctor".
         /// </summary>
-        /// <typeparam name="TReturn">A type to cast return value to.</typeparam>
-        /// <param name="info">The member information.</param>
-        /// <param name="result">A returned value.</param>
-        /// <param name="arguments">Arguments to pass to a method.</param>
-        /// <exception cref="TargetInvocationException">
+        /// <typeparam name="TReturn">A type of a value to be returned.</typeparam>
+        /// <param name="instance">A root object.</param>
+        /// <param name="type">A type of a root object.
+        /// If <paramref name="instance"/> is not <c>null</c>, then its runtime type is used instead.
+        /// </param>
+        /// <param name="memberPath">A path to a member to invoke.</param>
+        /// <param name="parameterTypes">
+        /// Types of parameters to find a method by.
+        /// Pass <c>null</c> to ignore parameters, or an empty array for parameterless methods.
+        /// </param>
+        /// <param name="returnValue">A value to be returned if a member is not void.</param>
+        /// <param name="bindingFlags">Binding flags to find members.</param>
+        /// <param name="arguments">Arguments to be passed into a member to invoke.</param>
+        /// <exception cref="TargetException">
         /// Target thrown an exception during execution. See inner exception for details.
         /// </exception>
-        /// <exception cref="InvalidOperationException">
-        /// Could not invoke a member for current object's state. See inner exception for details.
-        /// </exception>
         /// <returns>
-        /// <c>true</c> in case of success, otherwise <c>false</c> if the <paramref name="info"/> is <c>null</c>
-        /// or the <see cref="MembersInfo.ContainerObject"/> is <c>null</c> and a member is not static
-        /// or the return value is not of type <typeparamref name="TReturn"/>.
+        /// <c>true</c> in case of success, otherwise <c>false</c> if
+        /// <paramref name="memberPath"/> is <c>null</c> or empty
+        /// or
+        /// <paramref name="instance"/> is <c>null</c> and <paramref name="type"/> is <c>null</c>
+        /// or
+        /// a target member or one of intermediate members was not found
+        /// or
+        /// an intermediate member is neither <see cref="PropertyInfo"/> nor <see cref="FieldInfo"/>
+        /// or
+        /// an intermediate member is not static and its container is null
+        /// or
+        /// a target member is not <see cref="MethodBase"/>
+        /// or
+        /// a target value is not of type <typeparamref name="TReturn"/>.
         /// </returns>
-        public static bool Invoke<TReturn>(MembersInfo info, out TReturn result, params object[] arguments)
+        /// <example>
+        /// var success = Reflector.Invoke(
+        ///     DateTime.Now,
+        ///     null,
+        ///     "Date.AddYears",
+        ///     new[] { typeof(int) },
+        ///     out DateTime result, arguments: 10);
+        ///
+        /// // success == true;
+        /// // result.Year == DateTime.Now.Date.Year + 10;
+        /// </example>
+        public static bool Invoke<TReturn>(
+            object instance,
+            Type type,
+            string memberPath,
+            Type[] parameterTypes,
+            out TReturn returnValue,
+            BindingFlags bindingFlags = DefaultBindingFlags,
+            params object[] arguments)
         {
-            try
+            if ((instance == null && type == null) || string.IsNullOrEmpty(memberPath))
             {
-                if (info?.Members.FirstOrDefault() is MethodBase memberInfo
-                    && memberInfo.MemberType.HasFlag(MemberTypes.Method | MemberTypes.Constructor)
-                    && (info.ContainerObject != null || memberInfo.IsStatic))
-                {
-                    var rawResult = memberInfo.Invoke(info.ContainerObject, arguments);
-
-                    if (rawResult == null)
-                    {
-                        result = default;
-
-                        return true;
-                    }
-
-                    if (rawResult is TReturn)
-                    {
-                        result = (TReturn)rawResult;
-
-                        return true;
-                    }
-                }
-
-                result = default;
+                returnValue = default;
 
                 return false;
             }
-            catch (TargetInvocationException)
+
+            var container = instance;
+            var containerType = container?.GetType() ?? type;
+            MemberInfo[] memberInfos = null;
+
+            while (true)
             {
-                throw;
+                var dot = memberPath.IndexOf('.');
+                var size = (dot == -1) ? memberPath.Length : dot;
+                var prop = memberPath.Substring(0, size);
+
+                if (dot == -1 && prop.Equals("ctor", StringComparison.OrdinalIgnoreCase))
+                {
+                    prop = ".ctor";
+                }
+
+                memberInfos = containerType
+                    .GetTypeInfo()
+                    .GetMember(
+                        prop,
+                        MemberTypes.Field | MemberTypes.Property | MemberTypes.Method | MemberTypes.Constructor,
+                        bindingFlags);
+
+                if (dot == -1)
+                {
+                    break;
+                }
+
+                var memberInfo = memberInfos != null && memberInfos.Length > 0 ? memberInfos[0] : null;
+
+                if (memberInfo is PropertyInfo propertyInfo
+                    && (container != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
+                {
+                    container = propertyInfo.GetValue(container);
+                    containerType = container?.GetType() ?? propertyInfo.PropertyType;
+                }
+                else if (memberInfo is FieldInfo fieldInfo && (container != null || fieldInfo.IsStatic))
+                {
+                    container = fieldInfo.GetValue(container);
+                    containerType = container?.GetType() ?? fieldInfo.FieldType;
+                }
+                else
+                {
+                    returnValue = default;
+
+                    return false;
+                }
+
+                memberPath = memberPath.Substring(prop.Length + 1);
             }
-            catch (Exception e)
+
+            MethodBase methodInfo = null;
+
+            for (int i = memberInfos.Length - 1; i >= 0; i--)
             {
-                throw new InvalidOperationException(e.Message, e);
+                if (memberInfos[i] is MethodBase mbi && ParameterTypesMatch(mbi.GetParameters(), parameterTypes))
+                {
+                    methodInfo = mbi;
+
+                    break;
+                }
             }
+
+            if (methodInfo != null)
+            {
+                object rawValue = null;
+
+                if (container != null || methodInfo.IsStatic)
+                {
+                    rawValue = methodInfo.Invoke(container, arguments);
+                }
+                else if (methodInfo is ConstructorInfo constructorInfo)
+                {
+                    rawValue = constructorInfo.Invoke(arguments);
+                }
+
+                if (rawValue == null)
+                {
+                    returnValue = default;
+
+                    return true;
+                }
+                else if (rawValue is TReturn)
+                {
+                    returnValue = (TReturn)rawValue;
+
+                    return true;
+                }
+            }
+
+            returnValue = default;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Creates a getter. Works with exactly specified types without conversion. This is the fastest implementation.
+        /// </summary>
+        /// <typeparam name="TObject">The concrete type of the container's object.</typeparam>
+        /// <typeparam name="TReturn">The concrete type of the member.</typeparam>
+        /// <param name="memberPath">The path to a member.</param>
+        /// <returns>
+        /// A compiled delegate to get a value
+        /// or
+        /// <c>null</c> if the <paramref name="memberPath"/> is <c>null</c>.
+        /// </returns>
+        /// <example>
+        /// var getter = Reflector.CreateGetter(dt => dt.Date.Month);
+        ///
+        /// var value = getter(DateTime.Now);
+        ///
+        /// // value == DateTime.Now.Date.Month;
+        /// </example>
+        public static Func<TObject, TReturn> CreateGetter<TObject, TReturn>(
+            Expression<Func<TObject, TReturn>> memberPath)
+                => memberPath?.Compile();
+
+        /// <summary>
+        /// Creates a getter. Can create getters with any convertable types for polimorphic usage.
+        /// </summary>
+        /// <typeparam name="TObject">The type of the desired object in a delegate to create.</typeparam>
+        /// <typeparam name="TReturn">The type of the desired member in a delegate to create.</typeparam>
+        /// <param name="memberPath">The path to a member.</param>
+        /// <param name="containerType">
+        /// A type of a container's object which contains the member.
+        /// If null is specified, then <typeparamref name="TObject"/> is used without conversion.
+        /// </param>
+        /// <returns>
+        /// A compiled delegate to get a value
+        /// or
+        /// <c>null</c> if the <paramref name="memberPath"/> is <c>null</c> or empty.
+        /// </returns>
+        /// <example>
+        /// var getter = Reflector.CreateGetter{object, object}("Date.Month", typeof(DateTime));
+        ///
+        /// var value = getter(DateTime.Now);
+        ///
+        /// // value == DateTime.Now.Date.Month;
+        /// </example>
+        public static Func<TObject, TReturn> CreateGetter<TObject, TReturn>(
+            string memberPath,
+            Type containerType = null)
+        {
+            if (string.IsNullOrEmpty(memberPath))
+            {
+                return null;
+            }
+
+            var param = Expression.Parameter(typeof(TObject));
+
+            Expression body = param;
+
+            if (containerType != null && containerType != typeof(TObject))
+            {
+                body = Expression.Convert(param, containerType);
+            }
+
+            while (true)
+            {
+                var dot = memberPath.IndexOf('.');
+                var size = (dot == -1) ? memberPath.Length : dot;
+                var member = memberPath.Substring(0, size);
+
+                body = Expression.PropertyOrField(body, member);
+
+                if (dot == -1)
+                {
+                    break;
+                }
+
+                memberPath = memberPath.Substring(member.Length + 1);
+            }
+
+            if (body.Type != typeof(TReturn))
+            {
+                body = Expression.Convert(body, typeof(TReturn));
+            }
+
+            return Expression.Lambda<Func<TObject, TReturn>>(body, param).Compile();
+        }
+
+        /// <summary>
+        /// Creates the setter.
+        /// Works with exactly specified types without conversion.
+        /// This is the fastest implementation.
+        /// </summary>
+        /// <typeparam name="TObject">The type of the object.</typeparam>
+        /// <typeparam name="TValue">The type of the final member.</typeparam>
+        /// <param name="memberPath">The path to a member.</param>
+        /// <returns>A compiled delegate to set a value
+        /// or
+        /// <c>null</c> if <paramref name="memberPath"/> is <c>null</c>.</returns>
+        /// <example>
+        /// public class Root { public Child Child { get; set; } = new Child(); }
+        /// public class Child { public int Value { get; set; } }
+        ///
+        /// var setter = Reflector.CreateSetter{Root, int}(r => r.Child.Value);
+        /// var root = new Root();
+        ///
+        /// setter(root, 12345);
+        ///
+        /// // root.Child.Value == 12345;
+        /// </example>
+        public static Action<TObject, TValue> CreateSetter<TObject, TValue>(
+            Expression<Func<TObject, TValue>> memberPath)
+        {
+            if (memberPath == null)
+            {
+                return null;
+            }
+
+            var param = Expression.Parameter(memberPath.Body.Type);
+
+            return Expression
+                .Lambda<Action<TObject, TValue>>(
+                    Expression.Assign(memberPath.Body, param),
+                    memberPath.Parameters.First(),
+                    param)
+                .Compile();
+        }
+
+        /// <summary>
+        /// Creates a setter. Can create setters with any convertable types for polimorphic usage.
+        /// </summary>
+        /// <typeparam name="TObject">The type of the desired object in a delegate to create.</typeparam>
+        /// <typeparam name="TValue">The type of the desired member in a delegate to create.</typeparam>
+        /// <param name="memberPath">The path to a member.</param>
+        /// <param name="containerType">
+        /// A type of a container's object which contains the member.
+        /// If null is specified, then <typeparamref name="TObject"/> is used without conversion.
+        /// </param>
+        /// <returns>
+        /// A compiled delegate to set a value
+        /// or
+        /// <c>null</c> if the <paramref name="memberPath"/> is <c>null</c> or empty.
+        /// </returns>
+        /// <example>
+        /// public class Root { public Child Child { get; set; } = new Child(); }
+        /// public class Child { public int Value { get; set; } }
+        ///
+        /// var setter = Reflector.CreateSetter{Root, int}("Child.Value", typeof(Root));
+        /// var root = new Root();
+        ///
+        /// setter(root, 12345);
+        ///
+        /// // root.Child.Value == 12345;
+        /// </example>
+        public static Action<TObject, TValue> CreateSetter<TObject, TValue>(
+            string memberPath,
+            Type containerType = null)
+        {
+            if (string.IsNullOrEmpty(memberPath))
+            {
+                return null;
+            }
+
+            var containerParam = Expression.Parameter(typeof(TObject));
+
+            Expression body = containerParam;
+
+            if (containerType != null && containerType != typeof(TObject))
+            {
+                body = Expression.Convert(containerParam, containerType);
+            }
+
+            while (true)
+            {
+                var dot = memberPath.IndexOf('.');
+                var size = (dot == -1) ? memberPath.Length : dot;
+                var member = memberPath.Substring(0, size);
+
+                body = Expression.PropertyOrField(body, member);
+
+                if (dot == -1)
+                {
+                    break;
+                }
+
+                memberPath = memberPath.Substring(member.Length + 1);
+            }
+
+            var valueParam = Expression.Parameter(typeof(TValue));
+
+            Expression value = valueParam;
+
+            if (body.Type != typeof(TValue))
+            {
+                value = Expression.Convert(valueParam, body.Type);
+            }
+
+            return Expression
+                .Lambda<Action<TObject, TValue>>(
+                    Expression.Assign(body, value),
+                    containerParam,
+                    valueParam)
+                .Compile();
         }
 
         /// <summary>
@@ -400,8 +809,27 @@ namespace Heleonix.Reflection
         /// <param name="paramInfos">The parameter info.</param>
         /// <param name="paramTypes">The parameter types.</param>
         /// <returns><c>true</c> if parameters match, otherwise <c>false</c>.</returns>
-        private static bool ParameterTypesMatch(ICollection<ParameterInfo> paramInfos, IList<Type> paramTypes)
-            => paramTypes == null || (paramTypes.Count == paramInfos.Count
-                && !paramInfos.Where((t, i) => t.ParameterType != paramTypes[i]).Any());
+        private static bool ParameterTypesMatch(ParameterInfo[] paramInfos, Type[] paramTypes)
+        {
+            if (paramTypes == null)
+            {
+                return true;
+            }
+
+            if (paramTypes.Length != paramInfos.Length)
+            {
+                return false;
+            }
+
+            for (var i = paramTypes.Length - 1; i >= 0; i--)
+            {
+                if (paramInfos[i].ParameterType != paramTypes[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
 }
