@@ -6,7 +6,9 @@
 namespace Heleonix.Reflection
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
@@ -287,28 +289,86 @@ namespace Heleonix.Reflection
                 var size = (dot == -1) ? memberPath.Length : dot;
                 var prop = memberPath.Substring(0, size);
 
-                var members = containerType
-                    .GetTypeInfo()
-                    .GetMember(prop, MemberTypes.Field | MemberTypes.Property, bindingFlags);
+                var index = 0;
+                var property = string.Empty;
+                MemberInfo[] members;
 
-                memberInfo = members != null && members.Length > 0 ? members[0] : null;
+                if (IsIndexer(prop))
+                {
+                    property = prop.Substring(0, prop.IndexOf('['));
+                    index = int.Parse(prop.Split('[', ']')[1], CultureInfo.CurrentCulture);
 
-                if (memberInfo is PropertyInfo propertyInfo
-                    && (container != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
-                {
-                    container = propertyInfo.GetValue(container);
-                    containerType = container?.GetType() ?? propertyInfo.PropertyType;
-                }
-                else if (memberInfo is FieldInfo fieldInfo && (container != null || fieldInfo.IsStatic))
-                {
-                    container = fieldInfo.GetValue(container);
-                    containerType = container?.GetType() ?? fieldInfo.FieldType;
+                    members = containerType
+                            .GetTypeInfo()
+                            .GetMember(property, MemberTypes.Field | MemberTypes.Property, bindingFlags);
+
+                    memberInfo = members != null && members.Length > 0 ? members[0] : null;
+                    if (memberInfo is PropertyInfo propertyInfo2 && (container != null || IsStatic(propertyInfo2)) && propertyInfo2.CanRead)
+                    {
+                        container = propertyInfo2.GetValue(container);
+                        containerType = container?.GetType() ?? propertyInfo2.PropertyType;
+                    }
+                    else if (memberInfo is FieldInfo fieldInfo2 && (container != null || fieldInfo2.IsStatic))
+                    {
+                        container = fieldInfo2.GetValue(container);
+                        containerType = container?.GetType() ?? fieldInfo2.FieldType;
+                    }
+
+                    var enumerable = container as IEnumerable;
+                    if (enumerable != null)
+                    {
+                        var counter = 0;
+                        var found = false;
+                        foreach (var item in enumerable)
+                        {
+                            if (counter == index)
+                            {
+                                container = item;
+                                containerType = container?.GetType();
+
+                                found = true;
+                                break;
+                            }
+
+                            counter++;
+                        }
+
+                        if (!found)
+                        {
+                            value = default;
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        value = default;
+                        return false;
+                    }
                 }
                 else
                 {
-                    value = default;
+                    members = containerType
+                    .GetTypeInfo()
+                    .GetMember(prop, MemberTypes.Field | MemberTypes.Property, bindingFlags);
 
-                    return false;
+                    memberInfo = members != null && members.Length > 0 ? members[0] : null;
+
+                    if (memberInfo is PropertyInfo propertyInfo
+                        && (container != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
+                    {
+                        container = propertyInfo.GetValue(container);
+                        containerType = container?.GetType() ?? propertyInfo.PropertyType;
+                    }
+                    else if (memberInfo is FieldInfo fieldInfo && (container != null || fieldInfo.IsStatic))
+                    {
+                        container = fieldInfo.GetValue(container);
+                        containerType = container?.GetType() ?? fieldInfo.FieldType;
+                    }
+                    else
+                    {
+                        value = default;
+                        return false;
+                    }
                 }
 
                 if (dot == -1)
@@ -397,31 +457,88 @@ namespace Heleonix.Reflection
                 var size = (dot == -1) ? memberPath.Length : dot;
                 var prop = memberPath.Substring(0, size);
 
-                var members = containerType
-                    .GetTypeInfo()
-                    .GetMember(prop, MemberTypes.Field | MemberTypes.Property, bindingFlags);
+                var index = 0;
+                var property = string.Empty;
+                MemberInfo[] members;
 
-                memberInfo = members != null && members.Length > 0 ? members[0] : null;
+                if (IsIndexer(prop))
+                {
+                    property = prop.Substring(0, prop.IndexOf('['));
+                    index = int.Parse(prop.Split('[', ']')[1], CultureInfo.CurrentCulture);
 
-                if (dot == -1)
-                {
-                    break;
-                }
+                    members = containerType
+                            .GetTypeInfo()
+                            .GetMember(property, MemberTypes.Field | MemberTypes.Property, bindingFlags);
 
-                if (memberInfo is PropertyInfo propertyInfo
-                    && (container != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
-                {
-                    container = propertyInfo.GetValue(container);
-                    containerType = container?.GetType() ?? propertyInfo.PropertyType;
-                }
-                else if (memberInfo is FieldInfo fieldInfo && (container != null || fieldInfo.IsStatic))
-                {
-                    container = fieldInfo.GetValue(container);
-                    containerType = container?.GetType() ?? fieldInfo.FieldType;
+                    memberInfo = members != null && members.Length > 0 ? members[0] : null;
+                    if (memberInfo is PropertyInfo propertyInfo2 && (container != null || IsStatic(propertyInfo2)) && propertyInfo2.CanRead)
+                    {
+                        container = propertyInfo2.GetValue(container);
+                        containerType = container?.GetType() ?? propertyInfo2.PropertyType;
+                    }
+                    else if (memberInfo is FieldInfo fieldInfo2 && (container != null || fieldInfo2.IsStatic))
+                    {
+                        container = fieldInfo2.GetValue(container);
+                        containerType = container?.GetType() ?? fieldInfo2.FieldType;
+                    }
+
+                    var enumerable = container as IEnumerable;
+                    if (enumerable != null)
+                    {
+                        var counter = 0;
+                        var found = false;
+                        foreach (var item in enumerable)
+                        {
+                            if (counter == index)
+                            {
+                                container = item;
+                                containerType = container?.GetType();
+
+                                found = true;
+                                break;
+                            }
+
+                            counter++;
+                        }
+
+                        if (!found)
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
                 else
                 {
-                    return false;
+                    members = containerType
+                    .GetTypeInfo()
+                    .GetMember(prop, MemberTypes.Field | MemberTypes.Property, bindingFlags);
+
+                    memberInfo = members != null && members.Length > 0 ? members[0] : null;
+
+                    if (dot == -1)
+                    {
+                        break;
+                    }
+
+                    if (memberInfo is PropertyInfo propertyInfo
+                        && (container != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
+                    {
+                        container = propertyInfo.GetValue(container);
+                        containerType = container?.GetType() ?? propertyInfo.PropertyType;
+                    }
+                    else if (memberInfo is FieldInfo fieldInfo && (container != null || fieldInfo.IsStatic))
+                    {
+                        container = fieldInfo.GetValue(container);
+                        containerType = container?.GetType() ?? fieldInfo.FieldType;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
 
                 memberPath = memberPath.Substring(prop.Length + 1);
@@ -830,6 +947,11 @@ namespace Heleonix.Reflection
             }
 
             return true;
+        }
+
+        private static bool IsIndexer(string prop)
+        {
+            return prop.Contains('[');
         }
     }
 }
