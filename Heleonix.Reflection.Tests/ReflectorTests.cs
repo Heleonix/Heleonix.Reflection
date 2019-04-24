@@ -298,28 +298,91 @@ namespace Heleonix.Reflection.Tests
 
                 And("memberPath with properties exists", () =>
                 {
-                    memberPath = "SubItemProperty.SubSubItemProperty.NumberProperty";
-
-                    And("intermediate path is null", () =>
+                    And("memberPath does not have an indexer", () =>
                     {
-                        instance.SubItemProperty = null;
+                        memberPath = "SubItemProperty.SubSubItemProperty.NumberProperty";
 
-                        Should("provide default value and return false", () =>
+                        And("intermediate path is null", () =>
                         {
-                            Assert.That(result, Is.Null);
-                            Assert.That(returnValue, Is.False);
+                            instance.SubItemProperty = null;
+
+                            Should("provide default value and return false", () =>
+                            {
+                                Assert.That(result, Is.Null);
+                                Assert.That(returnValue, Is.False);
+                            });
+                        });
+
+                        And("intermediate path is not null", () =>
+                        {
+                            instance.SubItemProperty = new SubItem();
+                            instance.SubItemProperty.SubSubItemProperty.NumberProperty = 11111;
+
+                            Should("provide target value", () =>
+                            {
+                                Assert.That(result, Is.EqualTo(11111));
+                                Assert.That(returnValue, Is.True);
+                            });
                         });
                     });
 
-                    And("intermediate path is not null", () =>
+                    And("memberPath has an indexer", () =>
                     {
-                        instance.SubItemProperty = new SubItem();
-                        instance.SubItemProperty.SubSubItemProperty.NumberProperty = 11111;
-
-                        Should("provide target value", () =>
+                        And("the indexer is on the last item in the memberPath", () =>
                         {
-                            Assert.That(result, Is.EqualTo(11111));
-                            Assert.That(returnValue, Is.True);
+                            memberPath = "ItemsProperty[2]";
+
+                            Should("provide target value", () =>
+                            {
+                                Assert.That(result, Is.EqualTo(333));
+                                Assert.That(returnValue, Is.True);
+                            });
+                        });
+
+                        And("the indexer is in a middle of the memberPath", () =>
+                        {
+                            And("the collection is a list", () =>
+                            {
+                                instance.SubItemProperty.SubSubItemsListProperty.AddRange(
+                                new[]
+                                {
+                                    new SubSubItem { NumberField = 11 },
+                                    new SubSubItem { NumberField = 22 }
+                                });
+                                memberPath = "SubItemProperty.SubSubItemsListProperty[1].NumberField";
+
+                                Should("provide target value", () =>
+                                {
+                                    Assert.That(result, Is.EqualTo(22));
+                                    Assert.That(returnValue, Is.True);
+                                });
+
+                                And("the index is out of range", () =>
+                                {
+                                    memberPath = "SubItemProperty.SubSubItemsListProperty[1000].NumberField";
+
+                                    Should("provide default value and return false", () =>
+                                    {
+                                        Assert.That(result, Is.Null);
+                                        Assert.That(returnValue, Is.False);
+                                    });
+                                });
+                            });
+
+                            And("the collection is not a list", () =>
+                            {
+                                var queue = instance.SubItemProperty.SubSubItemsEnumerableProperty as Queue<SubSubItem>;
+
+                                queue.Enqueue(new SubSubItem { NumberField = 111 });
+
+                                memberPath = "SubItemProperty.SubSubItemsEnumerableProperty[0].NumberField";
+
+                                Should("provide target value", () =>
+                                {
+                                    Assert.That(result, Is.EqualTo(111));
+                                    Assert.That(returnValue, Is.True);
+                                });
+                            });
                         });
                     });
                 });
@@ -454,7 +517,7 @@ namespace Heleonix.Reflection.Tests
                             {
                                 Assert.That(
                                     Root.StaticSubItemProperty.SubSubItemProperty.NumberProperty,
-                                    Is.EqualTo(12345));
+                                    Is.EqualTo(value));
                                 Assert.That(returnValue, Is.True);
                             });
                         });
@@ -468,29 +531,97 @@ namespace Heleonix.Reflection.Tests
 
                 And("memberPath with properties exists", () =>
                 {
-                    memberPath = "SubItemProperty.SubSubItemProperty.NumberProperty";
-
-                    And("intermediate path is null", () =>
+                    And("memberPath does not have an indexer", () =>
                     {
-                        instance.SubItemProperty = null;
+                        memberPath = "SubItemProperty.SubSubItemProperty.NumberProperty";
 
-                        Should("return false", () =>
+                        And("intermediate path is null", () =>
                         {
-                            Assert.That(returnValue, Is.False);
+                            instance.SubItemProperty = null;
+
+                            Should("return false", () =>
+                            {
+                                Assert.That(returnValue, Is.False);
+                            });
+                        });
+
+                        And("intermediate path is not null", () =>
+                        {
+                            instance.SubItemProperty = new SubItem();
+                            value = 11111;
+
+                            Should("set the value and return true", () =>
+                            {
+                                Assert.That(
+                                    instance.SubItemProperty.SubSubItemProperty.NumberProperty,
+                                    Is.EqualTo(value));
+                                Assert.That(returnValue, Is.True);
+                            });
                         });
                     });
 
-                    And("intermediate path is not null", () =>
+                    And("memberPath has an indexer", () =>
                     {
-                        instance.SubItemProperty = new SubItem();
-                        value = 11111;
-
-                        Should("set the value and return true", () =>
+                        And("the indexer is on the last item in the memberPath", () =>
                         {
-                            Assert.That(
-                                instance.SubItemProperty.SubSubItemProperty.NumberProperty,
-                                Is.EqualTo(11111));
-                            Assert.That(returnValue, Is.True);
+                            memberPath = "ItemsProperty[2]";
+                            value = 999;
+
+                            Should("set the value and return true", () =>
+                            {
+                                Assert.That(instance.ItemsProperty[2], Is.EqualTo(value));
+                                Assert.That(returnValue, Is.True);
+                            });
+                        });
+
+                        And("the indexer is in a middle of the memberPath", () =>
+                        {
+                            And("the collection is a list", () =>
+                            {
+                                instance.SubItemProperty.SubSubItemsListProperty.AddRange(
+                                    new[]
+                                    {
+                                        new SubSubItem { NumberField = 11 },
+                                        new SubSubItem { NumberField = 22 }
+                                    });
+                                memberPath = "SubItemProperty.SubSubItemsListProperty[1].NumberField";
+                                value = 2222;
+
+                                Should("set the value and return true", () =>
+                                {
+                                    Assert.That(
+                                        instance.SubItemProperty.SubSubItemsListProperty[1].NumberField,
+                                        Is.EqualTo(value));
+                                    Assert.That(returnValue, Is.True);
+                                });
+
+                                And("the index is out of range", () =>
+                                {
+                                    memberPath = "SubItemProperty.SubSubItemsListProperty[1000].NumberField";
+
+                                    Should("return false", () =>
+                                    {
+                                        Assert.That(returnValue, Is.False);
+                                    });
+                                });
+                            });
+
+                            And("the collection is not a list", () =>
+                            {
+                                var queue = instance.SubItemProperty.SubSubItemsEnumerableProperty as Queue<SubSubItem>;
+
+                                queue.Enqueue(new SubSubItem { NumberField = 111 });
+
+                                memberPath = "SubItemProperty.SubSubItemsEnumerableProperty[0].NumberField";
+
+                                value = 222;
+
+                                Should("set the value and return true", () =>
+                                {
+                                    Assert.That(queue.Peek().NumberField, Is.EqualTo(value));
+                                    Assert.That(returnValue, Is.True);
+                                });
+                            });
                         });
                     });
                 });
@@ -516,9 +647,7 @@ namespace Heleonix.Reflection.Tests
 
                         Should("set the value and return true", () =>
                         {
-                            Assert.That(
-                                instance.SubItemField.SubSubItemField.NumberField,
-                                Is.EqualTo(22222));
+                            Assert.That(instance.SubItemField.SubSubItemField.NumberField, Is.EqualTo(value));
                             Assert.That(returnValue, Is.True);
                         });
                     });

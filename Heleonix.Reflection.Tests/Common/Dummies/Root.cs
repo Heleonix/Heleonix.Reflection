@@ -30,5 +30,12 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// Gets or sets the sub item property.
         /// </summary>
         public SubItem SubItemProperty { get; set; } = new SubItem();
+
+#pragma warning disable CA1819 // Properties should not return arrays
+        /// <summary>
+        /// Gets or sets an array of primitive items.
+        /// </summary>
+        public int[] ItemsProperty { get; set; } = new int[] { 111, 222, 333, 444, 555 };
+#pragma warning restore CA1819 // Properties should not return arrays
     }
 }

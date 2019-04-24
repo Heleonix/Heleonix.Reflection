@@ -6,7 +6,9 @@
 namespace Heleonix.Reflection
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
@@ -262,6 +264,20 @@ namespace Heleonix.Reflection
         ///
         /// // success == true;
         /// // value == DateTime.Now.TimeOfDay.Hours;
+        ///
+        /// or
+        ///
+        /// var success = Reflector.Get(typeof(int), null, "CustomAttributes[0].AttributeType", out int value);
+        ///
+        /// // success == true;
+        /// // value == typeof(int).CustomAttributes.First().AttributeType;
+        ///
+        /// or
+        ///
+        /// var success = Reflector.Get(typeof(int), null, "CustomAttributes[0]", out int value);
+        ///
+        /// // success == true;
+        /// // value == typeof(int).CustomAttributes.First();
         /// </example>
         public static bool Get<TReturn>(
             object instance,
@@ -287,6 +303,21 @@ namespace Heleonix.Reflection
                 var size = (dot == -1) ? memberPath.Length : dot;
                 var prop = memberPath.Substring(0, size);
 
+                var indexerStart = -1;
+                var index = -1;
+                var indexerEnd = prop.LastIndexOf(']');
+
+                if (indexerEnd != -1)
+                {
+                    indexerStart = prop.IndexOf('[');
+
+                    index = int.Parse(
+                        prop.Substring(indexerStart + 1, indexerEnd - indexerStart - 1),
+                        CultureInfo.CurrentCulture);
+
+                    prop = prop.Substring(0, indexerStart);
+                }
+
                 var members = containerType
                     .GetTypeInfo()
                     .GetMember(prop, MemberTypes.Field | MemberTypes.Property, bindingFlags);
@@ -311,12 +342,31 @@ namespace Heleonix.Reflection
                     return false;
                 }
 
+                if (index != -1)
+                {
+                    container = GetElementAt(container, index);
+
+                    if (container == null)
+                    {
+                        if (dot != -1)
+                        {
+                            value = default;
+
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        containerType = container.GetType();
+                    }
+                }
+
                 if (dot == -1)
                 {
                     break;
                 }
 
-                memberPath = memberPath.Substring(prop.Length + 1);
+                memberPath = memberPath.Substring(dot + 1);
             }
 
             if (container == null)
@@ -365,15 +415,27 @@ namespace Heleonix.Reflection
         /// a target member or an intermediate member is neither <see cref="PropertyInfo"/> nor <see cref="FieldInfo"/>.
         /// </returns>
         /// <example>
-        /// public class Root { public Child Child { get; set; } = new Child(); }
+        /// public class Root
+        /// {
+        ///     public Child Child { get; set; } = new Child();
+        ///     public Child[] Children { get; set; } = new Child[] { new Child(), new Child() };
+        /// }
+        ///
         /// public class Child { public int Value { get; set; } }
         ///
         /// var root = new Root();
         ///
-        /// var success = Reflector.Set(root, null, "Child.Value", 12345);
+        /// var success1 = Reflector.Set(root, null, "Child.Value", 111);
+        /// var success2 = Reflector.Set(root, null, "Children[0].Value", 222);
+        /// var success3 = Reflector.Set(root, null, "Children[1]", new Child() { Value = 333 });
         ///
-        /// // success == true;
-        /// // root.Child.Value == 12345;
+        /// // success1 == true;
+        /// // success2 == true;
+        /// // success3 == true;
+        ///
+        /// // root.Child.Value == 111;
+        /// // root.Children[0].Value == 222;
+        /// // root.Children[1].Value == 333;
         /// </example>
         public static bool Set(
             object instance,
@@ -389,6 +451,7 @@ namespace Heleonix.Reflection
 
             var container = instance;
             var containerType = container?.GetType() ?? type;
+            var index = -1;
             MemberInfo memberInfo = null;
 
             while (true)
@@ -397,13 +460,29 @@ namespace Heleonix.Reflection
                 var size = (dot == -1) ? memberPath.Length : dot;
                 var prop = memberPath.Substring(0, size);
 
+                var indexerStart = -1;
+                var indexerEnd = prop.LastIndexOf(']');
+
+                index = -1;
+
+                if (indexerEnd != -1)
+                {
+                    indexerStart = prop.IndexOf('[');
+
+                    index = int.Parse(
+                        prop.Substring(indexerStart + 1, indexerEnd - indexerStart - 1),
+                        CultureInfo.CurrentCulture);
+
+                    prop = prop.Substring(0, indexerStart);
+                }
+
                 var members = containerType
                     .GetTypeInfo()
                     .GetMember(prop, MemberTypes.Field | MemberTypes.Property, bindingFlags);
 
                 memberInfo = members != null && members.Length > 0 ? members[0] : null;
 
-                if (dot == -1)
+                if (dot == -1 && index == -1)
                 {
                     break;
                 }
@@ -424,12 +503,38 @@ namespace Heleonix.Reflection
                     return false;
                 }
 
-                memberPath = memberPath.Substring(prop.Length + 1);
+                if (index != -1)
+                {
+                    if (dot != -1)
+                    {
+                        container = GetElementAt(container, index);
+
+                        if (container == null)
+                        {
+                            return false;
+                        }
+
+                        containerType = container.GetType();
+                    }
+                    else
+                    {
+                        if (container is IList)
+                        {
+                            containerType = typeof(IList);
+                        }
+
+                        memberInfo = containerType.GetTypeInfo().GetProperty("Item", bindingFlags);
+
+                        break;
+                    }
+                }
+
+                memberPath = memberPath.Substring(dot + 1);
             }
 
             if (memberInfo is PropertyInfo pi && (container != null || IsStatic(pi)) && pi.CanWrite)
             {
-                pi.SetValue(container, value);
+                pi.SetValue(container, value, index != -1 ? new object[] { index } : null);
 
                 return true;
             }
@@ -830,6 +935,46 @@ namespace Heleonix.Reflection
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Gets an element at the specified <paramref name="index"/> in the specified <paramref name="container"/>.
+        /// </summary>
+        /// <param name="container">A container to get an element from.</param>
+        /// <param name="index">An index to get an elementa at.</param>
+        /// <returns>An element by the specified <paramref name="index"/>.</returns>
+        private static object GetElementAt(object container, int index)
+        {
+            var list = container as IList;
+
+            if (list != null)
+            {
+                if (index >= list.Count)
+                {
+                    return null;
+                }
+
+                return list[index];
+            }
+
+            var enumerable = container as IEnumerable;
+
+            if (enumerable != null)
+            {
+                var enumerator = enumerable.GetEnumerator();
+
+                while (enumerator.MoveNext())
+                {
+                    if (index == 0)
+                    {
+                        return enumerator.Current;
+                    }
+
+                    index--;
+                }
+            }
+
+            return null;
         }
     }
 }
