@@ -5,6 +5,8 @@
 
 namespace Heleonix.Reflection.Tests.Common.Dummies
 {
+    using System.Collections.Generic;
+
     /// <summary>
     /// The sub item type.
     /// </summary>
@@ -30,5 +32,15 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// Gets or sets the sub sub item property.
         /// </summary>
         public SubSubItem SubSubItemProperty { get; set; } = new SubSubItem();
+
+        /// <summary>
+        /// Gets the sub sub items list property.
+        /// </summary>
+        public List<SubSubItem> SubSubItemsListProperty { get; } = new List<SubSubItem>();
+
+        /// <summary>
+        /// Gets or sets the sub sub items enumerable property.
+        /// </summary>
+        public IEnumerable<SubSubItem> SubSubItemsEnumerableProperty { get; set; } = new Queue<SubSubItem>();
     }
 }

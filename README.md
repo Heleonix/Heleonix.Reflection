@@ -130,6 +130,20 @@ Provides functionality for working with reflection.
 
   // success == true;
   // value == DateTime.Now.TimeOfDay.Hours;
+
+  or
+
+  var success = Reflector.Get(typeof(int), null, "CustomAttributes[0].AttributeType", out int value);
+
+  // success == true;
+  // value == typeof(int).CustomAttributes.First().AttributeType;
+
+  or
+
+  var success = Reflector.Get(typeof(int), null, "CustomAttributes[0]", out int value);
+
+  // success == true;
+  // value == typeof(int).CustomAttributes.First();
   ```
 
 * `public static bool Set(object instance, Type type, string memberPath, object value, BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public)`
@@ -167,14 +181,27 @@ Provides functionality for working with reflection.
   ##### Example
 
   ```csharp
-  public class Root { public Child Child { get; set; } = new Child(); }
+  public class Root
+  {
+      public Child Child { get; set; } = new Child();
+      public Child[] Children { get; set; } = new Child[] { new Child(), new Child() };
+  }
+
   public class Child { public int Value { get; set; } }
 
   var root = new Root();
-  var success = Reflector.Set(root, null, "Child.Value", 12345);
 
-  // success == true;
-  // root.Child.Value == 12345;
+  var success1 = Reflector.Set(root, null, "Child.Value", 111);
+  var success2 = Reflector.Set(root, null, "Children[0].Value", 222);
+  var success3 = Reflector.Set(root, null, "Children[1]", new Child() { Value = 333 });
+
+  // success1 == true;
+  // success2 == true;
+  // success3 == true;
+
+  // root.Child.Value == 111;
+  // root.Children[0].Value == 222;
+  // root.Children[1].Value == 333;
   ```
 
 * `public static bool Invoke<TReturn>(object instance, Type type, string memberPath, Type[] parameterTypes, out TReturn returnValue, BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public, params object[] arguments)`
