@@ -104,20 +104,9 @@ namespace Heleonix.Reflection
                     break;
                 }
 
-                var memberInfo = memberInfos != null && memberInfos.Length > 0 ? memberInfos[0] : null;
+                var found = GetNextContainer(memberInfos, ref container, ref containerType);
 
-                if (memberInfo is PropertyInfo propertyInfo
-                    && (container != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
-                {
-                    container = propertyInfo.GetValue(container);
-                    containerType = container?.GetType() ?? propertyInfo.PropertyType;
-                }
-                else if (memberInfo is FieldInfo fieldInfo && (container != null || fieldInfo.IsStatic))
-                {
-                    container = fieldInfo.GetValue(container);
-                    containerType = container?.GetType() ?? fieldInfo.FieldType;
-                }
-                else
+                if (!found)
                 {
                     return EmptyMemberInfo;
                 }
@@ -132,7 +121,7 @@ namespace Heleonix.Reflection
                 var mi = memberInfos[i];
 
                 if (PropertyOrFieldMemberTypes.HasFlag(mi.MemberType)
-                    || (mi is MethodBase mbi && ParameterTypesMatch(mbi.GetParameters(), parameterTypes)))
+                    || ParameterTypesMatch(((MethodBase)mi).GetParameters(), parameterTypes))
                 {
                     matchedMemberInfo.Add(mi);
                 }
@@ -157,13 +146,11 @@ namespace Heleonix.Reflection
         /// <returns>An array of found types.</returns>
         public static Type[] GetTypes(string simpleName)
         {
-            var types = Assembly.GetCallingAssembly().GetTypes().Where(t => t.Name == simpleName).ToList();
-
             var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
 
-            types.AddRange(loadedAssemblies.SelectMany(a => a.GetTypes().Where(t => t.Name == simpleName)));
+            var types = loadedAssemblies.SelectMany(a => a.GetTypes().Where(t => t.Name == simpleName)).ToArray();
 
-            return types.ToArray();
+            return types;
         }
 #endif
 
@@ -211,13 +198,23 @@ namespace Heleonix.Reflection
                 return string.Empty;
             }
 
-            var path = memberPath.Body.ToString();
+            string path = null;
+
+            // For cases like Convert(obj.Item.SubItem.SubSubItem)
+            if (memberPath.Body is UnaryExpression uex)
+            {
+                path = uex.Operand.ToString();
+            }
+            else
+            {
+                path = memberPath.Body.ToString();
+            }
 
             // obj => obj.Item.SubItem.SubSubItem
             //           ^ 10
             var pathIndex = path.IndexOf('.');
 
-            if (pathIndex <= 0)
+            if (pathIndex == -1)
             {
                 return string.Empty;
             }
@@ -295,9 +292,8 @@ namespace Heleonix.Reflection
 
             var container = instance;
             var containerType = container?.GetType() ?? type;
-            MemberInfo memberInfo = null;
 
-            while (memberPath.Length > 0)
+            while (true)
             {
                 var dot = memberPath.IndexOf('.');
                 var size = (dot == -1) ? memberPath.Length : dot;
@@ -318,24 +314,13 @@ namespace Heleonix.Reflection
                     prop = prop.Substring(0, indexerStart);
                 }
 
-                var members = containerType
+                var memberInfos = containerType
                     .GetTypeInfo()
                     .GetMember(prop, MemberTypes.Field | MemberTypes.Property, bindingFlags);
 
-                memberInfo = members != null && members.Length > 0 ? members[0] : null;
+                var found = GetNextContainer(memberInfos, ref container, ref containerType);
 
-                if (memberInfo is PropertyInfo propertyInfo
-                    && (container != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
-                {
-                    container = propertyInfo.GetValue(container);
-                    containerType = container?.GetType() ?? propertyInfo.PropertyType;
-                }
-                else if (memberInfo is FieldInfo fieldInfo && (container != null || fieldInfo.IsStatic))
-                {
-                    container = fieldInfo.GetValue(container);
-                    containerType = container?.GetType() ?? fieldInfo.FieldType;
-                }
-                else
+                if (!found)
                 {
                     value = default;
 
@@ -476,29 +461,20 @@ namespace Heleonix.Reflection
                     prop = prop.Substring(0, indexerStart);
                 }
 
-                var members = containerType
+                var memberInfos = containerType
                     .GetTypeInfo()
                     .GetMember(prop, MemberTypes.Field | MemberTypes.Property, bindingFlags);
 
-                memberInfo = members != null && members.Length > 0 ? members[0] : null;
-
                 if (dot == -1 && index == -1)
                 {
+                    memberInfo = memberInfos.Length > 0 ? memberInfos[0] : null;
+
                     break;
                 }
 
-                if (memberInfo is PropertyInfo propertyInfo
-                    && (container != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
-                {
-                    container = propertyInfo.GetValue(container);
-                    containerType = container?.GetType() ?? propertyInfo.PropertyType;
-                }
-                else if (memberInfo is FieldInfo fieldInfo && (container != null || fieldInfo.IsStatic))
-                {
-                    container = fieldInfo.GetValue(container);
-                    containerType = container?.GetType() ?? fieldInfo.FieldType;
-                }
-                else
+                var found = GetNextContainer(memberInfos, ref container, ref containerType);
+
+                if (!found)
                 {
                     return false;
                 }
@@ -638,20 +614,9 @@ namespace Heleonix.Reflection
                     break;
                 }
 
-                var memberInfo = memberInfos != null && memberInfos.Length > 0 ? memberInfos[0] : null;
+                var found = GetNextContainer(memberInfos, ref container, ref containerType);
 
-                if (memberInfo is PropertyInfo propertyInfo
-                    && (container != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
-                {
-                    container = propertyInfo.GetValue(container);
-                    containerType = container?.GetType() ?? propertyInfo.PropertyType;
-                }
-                else if (memberInfo is FieldInfo fieldInfo && (container != null || fieldInfo.IsStatic))
-                {
-                    container = fieldInfo.GetValue(container);
-                    containerType = container?.GetType() ?? fieldInfo.FieldType;
-                }
-                else
+                if (!found)
                 {
                     returnValue = default;
 
@@ -661,27 +626,27 @@ namespace Heleonix.Reflection
                 memberPath = memberPath.Substring(prop.Length + 1);
             }
 
-            MethodBase methodInfo = null;
+            MethodBase methodBaseInfo = null;
 
             for (int i = memberInfos.Length - 1; i >= 0; i--)
             {
                 if (memberInfos[i] is MethodBase mbi && ParameterTypesMatch(mbi.GetParameters(), parameterTypes))
                 {
-                    methodInfo = mbi;
+                    methodBaseInfo = mbi;
 
                     break;
                 }
             }
 
-            if (methodInfo != null)
+            if (methodBaseInfo != null)
             {
                 object rawValue = null;
 
-                if (container != null || methodInfo.IsStatic)
+                if (container != null || methodBaseInfo.IsStatic)
                 {
-                    rawValue = methodInfo.Invoke(container, arguments);
+                    rawValue = methodBaseInfo.Invoke(container, arguments);
                 }
-                else if (methodInfo is ConstructorInfo constructorInfo)
+                else if (methodBaseInfo is ConstructorInfo constructorInfo)
                 {
                     rawValue = constructorInfo.Invoke(arguments);
                 }
@@ -975,6 +940,40 @@ namespace Heleonix.Reflection
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets next container and its type.
+        /// </summary>
+        /// <param name="memberInfos">Member info to find a next container.</param>
+        /// <param name="container">Current container.</param>
+        /// <param name="containerType">Current container's type.</param>
+        /// <returns><c>true</c> if a next container is found, otherwise <c>false</c>.</returns>
+        private static bool GetNextContainer(MemberInfo[] memberInfos, ref object container, ref Type containerType)
+        {
+            var memberInfo = memberInfos.Length > 0 ? memberInfos[0] : null;
+
+            if (memberInfo is PropertyInfo propertyInfo
+                    && (container != null || IsStatic(propertyInfo)) && propertyInfo.CanRead)
+            {
+                container = propertyInfo.GetValue(container);
+                containerType = container?.GetType() ?? propertyInfo.PropertyType;
+
+                return true;
+            }
+            else if (memberInfo is FieldInfo fieldInfo && (container != null || fieldInfo.IsStatic))
+            {
+                container = fieldInfo.GetValue(container);
+                containerType = container?.GetType() ?? fieldInfo.FieldType;
+
+                return true;
+            }
+
+            container = null;
+
+            containerType = null;
+
+            return false;
         }
     }
 }

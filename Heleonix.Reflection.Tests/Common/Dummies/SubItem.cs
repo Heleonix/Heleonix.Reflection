@@ -24,11 +24,6 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
 #pragma warning restore CA1051 // Do not declare visible instance fields
 
         /// <summary>
-        /// Gets or sets the static sub sub item property.
-        /// </summary>
-        public static SubSubItem StaticSubSubItemProperty { get; set; } = new SubSubItem();
-
-        /// <summary>
         /// Gets or sets the sub sub item property.
         /// </summary>
         public SubSubItem SubSubItemProperty { get; set; } = new SubSubItem();
