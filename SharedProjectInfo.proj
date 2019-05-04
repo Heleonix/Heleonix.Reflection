@@ -21,6 +21,7 @@
     <IsPackable>true</IsPackable>
     <IsTool>false</IsTool>
     <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <IncludeSource>false</IncludeSource>
     <NoPackageAnalysis>true</NoPackageAnalysis>
   </PropertyGroup>
