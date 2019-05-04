@@ -35,7 +35,7 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// <summary>
         /// Gets or sets an array of primitive items.
         /// </summary>
-        public int[] ItemsProperty { get; set; } = new int[] { 111, 222, 333, 444, 555 };
+        public string[] ItemsProperty { get; set; } = new string[] { "111", "222", "333", "444", "555" };
 #pragma warning restore CA1819 // Properties should not return arrays
     }
 }

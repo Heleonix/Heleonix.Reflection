@@ -5,6 +5,8 @@
 
 namespace Heleonix.Reflection.Tests.Common.Dummies
 {
+    using System.Collections.Generic;
+
     /// <summary>
     /// The sub sub item type.
     /// </summary>
@@ -15,9 +17,9 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
 #pragma warning disable CA2211 // Non-constant fields should not be visible
 #pragma warning disable S2223 // Non-constant static fields should not be visible
         /// <summary>
-        /// The static integer field.
+        /// The static text field.
         /// </summary>
-        public static int StaticNumberField;
+        public static string StaticTextField;
 #pragma warning restore S2223 // Non-constant static fields should not be visible
 #pragma warning restore CA2211 // Non-constant fields should not be visible
 #pragma warning restore SA1401 // Fields must be private
@@ -27,57 +29,32 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
 #pragma warning disable SA1401 // Fields must be private
 #pragma warning disable CA1051 // Do not declare visible instance fields
         /// <summary>
-        /// The object field.
+        /// The text field.
         /// </summary>
-        public object ObjectField;
+        public string TextField;
 #pragma warning restore CA1051 // Do not declare visible instance fields
 #pragma warning restore SA1401 // Fields must be private
 #pragma warning restore S1104 // Fields should not have public accessibility
 
-#pragma warning disable S1104 // Fields should not have public accessibility
-#pragma warning disable SA1401 // Fields must be private
-#pragma warning disable CA1051 // Do not declare visible instance fields
         /// <summary>
-        /// The number field.
+        /// Provides a list for the indexer.
         /// </summary>
-        public int NumberField;
-#pragma warning restore CA1051 // Do not declare visible instance fields
-#pragma warning restore SA1401 // Fields must be private
-#pragma warning restore S1104 // Fields should not have public accessibility
-
-#pragma warning disable S1450 // Private fields only used as local variables in methods should become local variables
-        /// <summary>
-        /// The static int set property.
-        /// </summary>
-        private static int staticIntSetProperty;
-#pragma warning restore S1450 // Private fields only used as local variables in methods should become local variables
+        private readonly IList<string> list = new List<string> { "111" };
 
         /// <summary>
-        /// Gets 222.
+        /// Gets text.
         /// </summary>
-        public static int StaticNumberGetProperty { get; }
+        public static string StaticTextGetProperty { get; }
 
         /// <summary>
-        /// Gets or sets the static number.
+        /// Gets or sets the static text.
         /// </summary>
-        public static int StaticNumberProperty { get; set; }
-
-#pragma warning disable S2376 // Write-only properties should not be used
-#pragma warning disable CA1044 // Properties should not be write only
-        /// <summary>
-        /// Sets the static number.
-        /// </summary>
-        public static int StaticNumberSetProperty
-#pragma warning restore CA1044 // Properties should not be write only
-#pragma warning restore S2376 // Write-only properties should not be used
-        {
-            set { staticIntSetProperty = value; }
-        }
+        public static string StaticTextProperty { get; set; }
 
         /// <summary>
-        /// Gets or sets the number.
+        /// Gets or sets the text.
         /// </summary>
-        public int NumberProperty { get; set; }
+        public string TextProperty { get; set; }
 
         /// <summary>
         /// Gets or sets the object.
@@ -85,24 +62,22 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         public object ObjectProperty { get; set; }
 
         /// <summary>
-        /// Statics the function.
+        /// Gets or sets an item by the specified index.
         /// </summary>
-        /// <returns>111.</returns>
-        public static int StaticFunction() => 1;
-
-        /// <summary>
-        /// Statics the action.
-        /// </summary>
-        public static void StaticAction()
+        /// <param name="index">An index to get or set an item.</param>
+        /// <returns>An item by the specified index.</returns>
+        public string this[int index]
         {
-            // For testing pupropes it is empty.
-        }
+            get
+            {
+                return this.list[index];
+            }
 
-        /// <summary>
-        /// Methods this instance.
-        /// </summary>
-        /// <returns>111.</returns>
-        public virtual int Method() => 2;
+            set
+            {
+                this.list[index] = value;
+            }
+        }
 
         /// <summary>
         /// Adds the specified left.
@@ -110,7 +85,7 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// <param name="left">The left.</param>
         /// <param name="right">The right.</param>
         /// <returns><paramref name="left"/> + <paramref name="right"/>.</returns>
-        public virtual int Add(int left, int right) => left + right;
+        public virtual string Concat(string left, string right) => left + right;
 
         /// <summary>
         /// Adds the specified left.
@@ -121,16 +96,11 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         public virtual double Add(double left, double right) => left + right;
 
         /// <summary>
-        /// Objects the function.
+        /// Adds the specified left.
         /// </summary>
-        /// <returns>null</returns>
-        public virtual object ObjectFunction() => null;
-
-        /// <summary>
-        /// Actions this instance.
-        /// </summary>
-        public virtual void Action()
-        {
-        }
+        /// <param name="left">The left.</param>
+        /// <param name="right">The right.</param>
+        /// <returns><paramref name="left"/> + <paramref name="right"/>.</returns>
+        public virtual float Add(float left, float right) => left + right;
     }
 }
