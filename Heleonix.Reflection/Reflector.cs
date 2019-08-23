@@ -8,6 +8,7 @@ namespace Heleonix.Reflection
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Globalization;
     using System.Linq;
     using System.Linq.Expressions;
@@ -510,12 +511,14 @@ namespace Heleonix.Reflection
 
             if (memberInfo is PropertyInfo pi && (container != null || IsStatic(pi)) && pi.CanWrite)
             {
+                value = CoerceValue(pi.PropertyType, value);
                 pi.SetValue(container, value, index != -1 ? new object[] { index } : null);
 
                 return true;
             }
             else if (memberInfo is FieldInfo fi && (container != null || fi.IsStatic))
             {
+                value = CoerceValue(fi.FieldType, value);
                 fi.SetValue(container, value);
 
                 return true;
@@ -974,6 +977,30 @@ namespace Heleonix.Reflection
             containerType = null;
 
             return false;
+        }
+
+        private static object CoerceValue(Type memberType, object value)
+        {
+            if (value is null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+#if !NETSTANDARD1_6
+            var converter = TypeDescriptor.GetConverter(memberType);
+            if (!converter.CanConvertFrom(value.GetType()))
+            {
+                return value;
+            }
+
+            return converter.ConvertFrom(value);
+#else
+            if (memberType.GetTypeInfo().IsEnum)
+            {
+                return Enum.Parse(memberType, value.ToString());
+            }
+
+            return Convert.ChangeType(value, memberType, CultureInfo.CurrentCulture);
+#endif
         }
     }
 }

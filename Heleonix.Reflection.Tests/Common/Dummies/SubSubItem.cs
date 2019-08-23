@@ -5,6 +5,7 @@
 
 namespace Heleonix.Reflection.Tests.Common.Dummies
 {
+    using System;
     using System.Collections.Generic;
 
     /// <summary>
@@ -60,6 +61,16 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// Gets or sets the object.
         /// </summary>
         public object ObjectProperty { get; set; }
+
+        /// <summary>
+        /// Gets or sets the enum.
+        /// </summary>
+        public EnumItem EnumProperty { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Date.
+        /// </summary>
+        public DateTime DateProperty { get; set; }
 
         /// <summary>
         /// Gets or sets an item by the specified index.
