@@ -985,6 +985,12 @@ namespace Heleonix.Reflection
             {
                 throw new ArgumentNullException(nameof(value));
             }
+
+            if (memberType.IsInstanceOfType(value))
+            {
+                return value;
+            }
+
 #if !NETSTANDARD1_6
             var converter = TypeDescriptor.GetConverter(memberType);
             if (!converter.CanConvertFrom(value.GetType()))
