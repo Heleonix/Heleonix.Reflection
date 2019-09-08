@@ -468,7 +468,7 @@ namespace Heleonix.Reflection.Tests
                                 new[]
                                 {
                                     new SubSubItem { TextProperty = "11" },
-                                    new SubSubItem { TextProperty = "22" }
+                                    new SubSubItem { TextProperty = "22" },
                                 });
                                 memberPath = "SubItemProperty.SubSubItemsListProperty[1].TextProperty";
 
@@ -785,7 +785,7 @@ namespace Heleonix.Reflection.Tests
                                     new[]
                                     {
                                         new SubSubItem { TextProperty = "11" },
-                                        new SubSubItem { TextProperty = "22" }
+                                        new SubSubItem { TextProperty = "22" },
                                     });
                                 memberPath = "SubItemProperty.SubSubItemsListProperty[1].TextProperty";
                                 value = "2222";

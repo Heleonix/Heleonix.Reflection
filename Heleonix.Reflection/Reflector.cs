@@ -63,7 +63,7 @@ namespace Heleonix.Reflection
         /// var info = Reflector.GetInfo(instance: dt, type: null, memberPath: "TimeOfDay.Negate");
         ///
         /// // info[0].Name == "Negate";
-        /// // info[0].MemberType == MemberTypes.Property;
+        /// // info[0].MemberType == MemberTypes.Property.
         /// </example>
         public static MemberInfo[] GetInfo(
             object instance,
@@ -79,7 +79,7 @@ namespace Heleonix.Reflection
 
             var container = instance;
             var containerType = container?.GetType() ?? type;
-            MemberInfo[] memberInfos = null;
+            MemberInfo[] memberInfos;
 
             while (true)
             {
@@ -163,7 +163,7 @@ namespace Heleonix.Reflection
         /// <example>
         /// var path = Reflector.GetMemberPath{DateTime}(dt => dt.TimeOfDay.Negate());
         ///
-        /// // path: "TimeOfDay.Negate"
+        /// // path: "TimeOfDay.Negate".
         /// </example>
         public static string GetMemberPath<TObject>(Expression<Func<TObject, object>> memberPath)
             => GetMemberPath(memberPath as LambdaExpression);
@@ -177,7 +177,7 @@ namespace Heleonix.Reflection
         /// <example>
         /// var path = Reflector.GetMemberPath{List{int}}(list => list.Clear());
         ///
-        /// // path: "Clear"
+        /// // path: "Clear".
         /// </example>
         public static string GetMemberPath<TObject>(Expression<Action<TObject>> memberPath)
             => GetMemberPath(memberPath as LambdaExpression);
@@ -198,20 +198,8 @@ namespace Heleonix.Reflection
                 return string.Empty;
             }
 
-            string path = null;
+            var path = memberPath.Body is UnaryExpression uex ? uex.Operand.ToString() : memberPath.Body.ToString();
 
-            // For cases like Convert(obj.Item.SubItem.SubSubItem)
-            if (memberPath.Body is UnaryExpression uex)
-            {
-                path = uex.Operand.ToString();
-            }
-            else
-            {
-                path = memberPath.Body.ToString();
-            }
-
-            // obj => obj.Item.SubItem.SubSubItem
-            //           ^ 10
             var pathIndex = path.IndexOf('.');
 
             if (pathIndex == -1)
@@ -219,8 +207,6 @@ namespace Heleonix.Reflection
                 return string.Empty;
             }
 
-            // obj => obj.Item.SubItem.SubSubMethod(int)
-            //                                  36 ^   ^ 40
             var parenthesesIndex = path.LastIndexOf('(');
 
             parenthesesIndex = parenthesesIndex == -1 ? path.Length : parenthesesIndex;
@@ -274,7 +260,7 @@ namespace Heleonix.Reflection
         /// var success = Reflector.Get(typeof(int), null, "CustomAttributes[0]", out int value);
         ///
         /// // success == true;
-        /// // value == typeof(int).CustomAttributes.First();
+        /// // value == typeof(int).CustomAttributes.First().
         /// </example>
         public static bool Get<TReturn>(
             object instance,
@@ -299,13 +285,12 @@ namespace Heleonix.Reflection
                 var size = (dot == -1) ? memberPath.Length : dot;
                 var prop = memberPath.Substring(0, size);
 
-                var indexerStart = -1;
                 var index = -1;
                 var indexerEnd = prop.LastIndexOf(']');
 
                 if (indexerEnd != -1)
                 {
-                    indexerStart = prop.IndexOf('[');
+                    var indexerStart = prop.IndexOf('[');
 
                     index = int.Parse(
                         prop.Substring(indexerStart + 1, indexerEnd - indexerStart - 1),
@@ -420,7 +405,7 @@ namespace Heleonix.Reflection
         ///
         /// // root.Child.Value == 111;
         /// // root.Children[0].Value == 222;
-        /// // root.Children[1].Value == 333;
+        /// // root.Children[1].Value == 333.
         /// </example>
         public static bool Set(
             object instance,
@@ -436,8 +421,8 @@ namespace Heleonix.Reflection
 
             var container = instance;
             var containerType = container?.GetType() ?? type;
-            var index = -1;
-            MemberInfo memberInfo = null;
+            int index;
+            MemberInfo memberInfo;
 
             while (true)
             {
@@ -445,14 +430,13 @@ namespace Heleonix.Reflection
                 var size = (dot == -1) ? memberPath.Length : dot;
                 var prop = memberPath.Substring(0, size);
 
-                var indexerStart = -1;
                 var indexerEnd = prop.LastIndexOf(']');
 
                 index = -1;
 
                 if (indexerEnd != -1)
                 {
-                    indexerStart = prop.IndexOf('[');
+                    var indexerStart = prop.IndexOf('[');
 
                     index = int.Parse(
                         prop.Substring(indexerStart + 1, indexerEnd - indexerStart - 1),
@@ -569,7 +553,7 @@ namespace Heleonix.Reflection
         ///     out DateTime result, arguments: 10);
         ///
         /// // success == true;
-        /// // result.Year == DateTime.Now.Date.Year + 10;
+        /// // result.Year == DateTime.Now.Date.Year + 10.
         /// </example>
         public static bool Invoke<TReturn>(
             object instance,
@@ -589,7 +573,7 @@ namespace Heleonix.Reflection
 
             var container = instance;
             var containerType = container?.GetType() ?? type;
-            MemberInfo[] memberInfos = null;
+            MemberInfo[] memberInfos;
 
             while (true)
             {
@@ -686,7 +670,7 @@ namespace Heleonix.Reflection
         ///
         /// var value = getter(DateTime.Now);
         ///
-        /// // value == DateTime.Now.Date.Month;
+        /// // value == DateTime.Now.Date.Month.
         /// </example>
         public static Func<TObject, TReturn> CreateGetter<TObject, TReturn>(
             Expression<Func<TObject, TReturn>> memberPath)
@@ -712,7 +696,7 @@ namespace Heleonix.Reflection
         ///
         /// var value = getter(DateTime.Now);
         ///
-        /// // value == DateTime.Now.Date.Month;
+        /// // value == DateTime.Now.Date.Month.
         /// </example>
         public static Func<TObject, TReturn> CreateGetter<TObject, TReturn>(
             string memberPath,
@@ -776,7 +760,7 @@ namespace Heleonix.Reflection
         ///
         /// setter(root, 12345);
         ///
-        /// // root.Child.Value == 12345;
+        /// // root.Child.Value == 12345.
         /// </example>
         public static Action<TObject, TValue> CreateSetter<TObject, TValue>(
             Expression<Func<TObject, TValue>> memberPath)
@@ -820,7 +804,7 @@ namespace Heleonix.Reflection
         ///
         /// setter(root, 12345);
         ///
-        /// // root.Child.Value == 12345;
+        /// // root.Child.Value == 12345.
         /// </example>
         public static Action<TObject, TValue> CreateSetter<TObject, TValue>(
             string memberPath,
@@ -910,9 +894,7 @@ namespace Heleonix.Reflection
         /// <returns>An element by the specified <paramref name="index"/>.</returns>
         private static object GetElementAt(object container, int index)
         {
-            var list = container as IList;
-
-            if (list != null)
+            if (container is IList list)
             {
                 if (index >= list.Count)
                 {
@@ -922,9 +904,7 @@ namespace Heleonix.Reflection
                 return list[index];
             }
 
-            var enumerable = container as IEnumerable;
-
-            if (enumerable != null)
+            if (container is IEnumerable enumerable)
             {
                 var enumerator = enumerable.GetEnumerator();
 
