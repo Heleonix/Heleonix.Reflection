@@ -983,7 +983,7 @@ namespace Heleonix.Reflection
         {
             if (value is null)
             {
-                throw new ArgumentNullException(nameof(value));
+                return null;
             }
 
             if (memberType.IsInstanceOfType(value))
