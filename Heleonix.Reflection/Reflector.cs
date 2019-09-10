@@ -986,7 +986,7 @@ namespace Heleonix.Reflection
                 return null;
             }
 
-            if (memberType.IsInstanceOfType(value))
+            if (memberType.GetTypeInfo().IsInstanceOfType(value))
             {
                 return value;
             }
