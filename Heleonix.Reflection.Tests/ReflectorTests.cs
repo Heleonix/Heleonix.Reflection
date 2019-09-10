@@ -711,6 +711,34 @@ namespace Heleonix.Reflection.Tests
                                 Assert.That(returnValue, Is.True);
                             });
 
+                            And("property is an enum and value is string", () =>
+                            {
+                                memberPath = "SubItemProperty.SubSubItemProperty.EnumProperty";
+                                value = "Value2";
+
+                                Should("set the enum value and return true", () =>
+                                {
+                                    Assert.That(
+                                        instance.SubItemProperty.SubSubItemProperty.EnumProperty,
+                                        Is.EqualTo(EnumItem.Value2));
+                                    Assert.That(returnValue, Is.True);
+                                });
+                            });
+
+                            And("property is of type DateTime and value is string", () =>
+                            {
+                                memberPath = "SubItemProperty.SubSubItemProperty.DateProperty";
+                                value = "2010-3-23";
+
+                                Should("set the date value and return true", () =>
+                                {
+                                    Assert.That(
+                                        instance.SubItemProperty.SubSubItemProperty.DateProperty,
+                                        Is.EqualTo(DateTime.Parse(value.ToString())));
+                                    Assert.That(returnValue, Is.True);
+                                });
+                            });
+
                             And("property does not have setter", () =>
                             {
                                 memberPath = "SubItemProperty.SubSubItemProperty.StaticTextGetProperty";
