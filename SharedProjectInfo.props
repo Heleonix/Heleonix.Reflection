@@ -1,15 +1,16 @@
 <Project>
   <PropertyGroup>
-    <Version>2.1.1</Version>
+    <Version>3.0.0</Version>
     <PackageReleaseNotes>
-      Indexers in Get and Set methods, i.e.: 'Item.SubItem[10]' or 'Item.SubItem[10].SubSubItem'
+      Decommission of netstandard1.6;
+      Implementation of coersing values in the Set method.
     </PackageReleaseNotes>
 
     <Description>Provides reflection functionality to search and invoke type members, search types, generate delegates etc.</Description>
     <PackageTags>Heleonix reflection reflector invoke getter setter get set getinfo find member</PackageTags>
 
     <Authors>Heleonix - Hennadii Lutsyshyn</Authors>
-    <Copyright>Copyright (c) 2017-present Heleonix - Hennadii Lutsyshyn</Copyright>
+    <Copyright>Copyright (c) Heleonix - Hennadii Lutsyshyn</Copyright>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
 
     <RepositoryType>git</RepositoryType>

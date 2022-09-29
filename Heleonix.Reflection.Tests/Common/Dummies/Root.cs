@@ -1,5 +1,5 @@
 ﻿// <copyright file="Root.cs" company="Heleonix - Hennadii Lutsyshyn">
-// Copyright (c) 2017-present Heleonix - Hennadii Lutsyshyn. All rights reserved.
+// Copyright (c) Heleonix - Hennadii Lutsyshyn. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the repository root for full license information.
 // </copyright>
 
@@ -32,6 +32,7 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         public SubItem SubItemProperty { get; set; } = new SubItem();
 
 #pragma warning disable CA1819 // Properties should not return arrays
+
         /// <summary>
         /// Gets or sets an array of primitive items.
         /// </summary>

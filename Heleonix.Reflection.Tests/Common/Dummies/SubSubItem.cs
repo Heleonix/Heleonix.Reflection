@@ -1,10 +1,11 @@
 ﻿// <copyright file="SubSubItem.cs" company="Heleonix - Hennadii Lutsyshyn">
-// Copyright (c) 2017-present Heleonix - Hennadii Lutsyshyn. All rights reserved.
+// Copyright (c) Heleonix - Hennadii Lutsyshyn. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the repository root for full license information.
 // </copyright>
 
 namespace Heleonix.Reflection.Tests.Common.Dummies
 {
+    using System;
     using System.Collections.Generic;
 
     /// <summary>
@@ -16,6 +17,7 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
 #pragma warning disable SA1401 // Fields must be private
 #pragma warning disable CA2211 // Non-constant fields should not be visible
 #pragma warning disable S2223 // Non-constant static fields should not be visible
+
         /// <summary>
         /// The static text field.
         /// </summary>
@@ -28,10 +30,16 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
 #pragma warning disable S1104 // Fields should not have public accessibility
 #pragma warning disable SA1401 // Fields must be private
 #pragma warning disable CA1051 // Do not declare visible instance fields
+
         /// <summary>
         /// The text field.
         /// </summary>
         public string TextField;
+
+        /// <summary>
+        /// The enum field.
+        /// </summary>
+        public EnumItem EnumField;
 #pragma warning restore CA1051 // Do not declare visible instance fields
 #pragma warning restore SA1401 // Fields must be private
 #pragma warning restore S1104 // Fields should not have public accessibility
@@ -60,6 +68,11 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// Gets or sets the object.
         /// </summary>
         public object ObjectProperty { get; set; }
+
+        /// <summary>
+        /// Gets or sets the enum.
+        /// </summary>
+        public EnumItem? EnumProperty { get; set; }
 
         /// <summary>
         /// Gets or sets an item by the specified index.
