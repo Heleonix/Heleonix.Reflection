@@ -26,9 +26,7 @@ namespace Heleonix.Reflection
         /// <param name="memberPath">A path to a member.</param>
         /// <param name="value">A value to be set.</param>
         /// <param name="bindingFlags">Binding flags to find members.</param>
-        /// <exception cref="TargetException">
-        /// Target thrown an exception during execution. See inner exception for details.
-        /// </exception>
+        /// <exception><seealso cref="PropertyInfo.SetValue(object, object, object[])"/></exception>
         /// <returns>
         /// <c>true</c> in case of success, otherwise <c>false</c> if
         /// <paramref name="memberPath"/> is <c>null</c> or empty
@@ -82,9 +80,7 @@ namespace Heleonix.Reflection
         /// <param name="memberPath">A path to a member.</param>
         /// <param name="value">A value to be set.</param>
         /// <param name="bindingFlags">Binding flags to find members.</param>
-        /// <exception cref="TargetException">
-        /// Target thrown an exception during execution. See inner exception for details.
-        /// </exception>
+        /// <exception><seealso cref="PropertyInfo.SetValue(object, object, object[])"/></exception>
         /// <returns>
         /// <c>true</c> in case of success, otherwise <c>false</c> if
         /// <paramref name="memberPath"/> is <c>null</c> or empty
@@ -141,9 +137,7 @@ namespace Heleonix.Reflection
         /// Specifies if the <paramref name="value"/> needs to be coerced into the target type or assigned as is.
         /// </param>
         /// <param name="bindingFlags">Binding flags to find members.</param>
-        /// <exception cref="TargetException">
-        /// Target thrown an exception during execution. See inner exception for details.
-        /// </exception>
+        /// <exception><seealso cref="PropertyInfo.SetValue(object, object, object[])"/></exception>
         /// <returns>
         /// <c>true</c> in case of success, otherwise <c>false</c> if
         /// <paramref name="memberPath"/> is <c>null</c> or empty

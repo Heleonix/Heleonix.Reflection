@@ -164,7 +164,7 @@ Provides functionality for working with reflection.
 
   ##### Exceptions
 
-  - `TargetException`: Target thrown an exception during execution. See inner exception for details.
+  - see exceptions of `PropertyInfo.SetValue(object, object, object[])`
 
   ##### Returns
 
@@ -203,6 +203,57 @@ Provides functionality for working with reflection.
   // root.Children[0].Value == 222;
   // root.Children[1].Value == 333;
   ```
+* `public static bool SetCoerced(object instance, Type type, string memberPath, object value, BindingFlags bindingFlags = DefaultBindingFlags)`
+  Sets a provided value by the provided path with coercion into the target member type.
+
+  ##### Parameters
+
+  - `instance`: A root object.
+  - `type`: A type of a root object. If `instance`is not `null`, then its type is used instead.
+  - `memberPath`: A path to a member.
+  - `value`: A value to be set.
+  - `bindingFlags`: Binding flags to find members.
+
+  ##### Exceptions
+
+  - see exceptions of `PropertyInfo.SetValue(object, object, object[])`
+
+  ##### Returns
+
+  `true` in case of success, otherwise `false` if `memberPath` is `null` or empty
+  or
+  `instance` is `null` and `type` is `null`
+  or
+  a target member or one of intermediate members was not found
+  or
+  a member is not static and its container is null
+  or
+  a target member or an intermediate member is neither `PropertyInfo` nor `FieldInfo`.
+
+  ##### Example
+
+  ```csharp
+  public class Root
+  {
+      public Child Child { get; set; } = new Child();
+      public Child[] Children { get; set; } = new Child[] { new Child(), new Child() };
+  }
+
+  public class Child { public int Value { get; set; } }
+
+  var root = new Root();
+
+  var success1 = Reflector.Set(root, null, "Child.Value", 111);
+  var success2 = Reflector.Set(root, null, "Children[0].Value", 222);
+  var success3 = Reflector.Set(root, null, "Children[1]", new Child() { Value = 333 });
+
+  // success1 == true;
+  // success2 == true;
+  // success3 == true;
+
+  // root.Child.Value == 111;
+  // root.Children[0].Value == 222;
+  // root.Children[1].Value == 333.
 
 * `public static bool Invoke<TReturn>(object instance, Type type, string memberPath, Type[] parameterTypes, out TReturn returnValue, BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public, params object[] arguments)`
 

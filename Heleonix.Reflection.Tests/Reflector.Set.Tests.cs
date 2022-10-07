@@ -334,6 +334,7 @@ namespace Heleonix.Reflection.Tests
             Arrange(() =>
             {
                 exception = null;
+                returnValue = false;
             });
 
             Act(() =>
@@ -401,7 +402,7 @@ namespace Heleonix.Reflection.Tests
 
                     Should("throw an exception and return false", () =>
                     {
-                        Assert.That(exception, Is.InstanceOf<TargetException>());
+                        Assert.That(exception, Is.InstanceOf<ArgumentException>());
                         Assert.That(returnValue, Is.False);
                     });
                 });
@@ -413,7 +414,7 @@ namespace Heleonix.Reflection.Tests
 
                     Should("set null and return true", () =>
                     {
-                        Assert.That(instance.SubItemProperty.SubSubItemProperty.EnumField, Is.Null);
+                        Assert.That(instance.SubItemProperty.SubSubItemProperty.EnumProperty, Is.Null);
                         Assert.That(returnValue, Is.True);
                     });
                 });

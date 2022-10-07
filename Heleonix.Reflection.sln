@@ -10,8 +10,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.gitignore = .gitignore
 		LICENSE = LICENSE
 		README.md = README.md
-		SharedProjectInfo.props = SharedProjectInfo.props
 		stylecop.json = stylecop.json
+		SharedPackageInfo.props = SharedPackageInfo.props
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Heleonix.Reflection.Tests", "Heleonix.Reflection.Tests\Heleonix.Reflection.Tests.csproj", "{B35408E2-D592-4157-997A-21611F54D54D}"
