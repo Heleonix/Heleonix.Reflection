@@ -45,9 +45,19 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
 #pragma warning restore S1104 // Fields should not have public accessibility
 
         /// <summary>
+        /// Holds the value of the static text property.
+        /// </summary>
+        private static string staticTextSetProperty;
+
+        /// <summary>
         /// Provides a list for the indexer.
         /// </summary>
         private readonly IList<string> list = new List<string> { "111" };
+
+        /// <summary>
+        /// Holds the value of the static text property.
+        /// </summary>
+        private string textSetProperty;
 
         /// <summary>
         /// Gets text.
@@ -55,9 +65,40 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         public static string StaticTextGetProperty { get; }
 
         /// <summary>
+        /// Sets text.
+        /// </summary>
+#pragma warning disable S2376 // Write-only properties should not be used
+        public static string StaticTextSetProperty
+        {
+            set
+            {
+                staticTextSetProperty = value;
+            }
+        }
+#pragma warning restore S2376 // Write-only properties should not be used
+
+        /// <summary>
         /// Gets or sets the static text.
         /// </summary>
         public static string StaticTextProperty { get; set; }
+
+        /// <summary>
+        /// Gets the text.
+        /// </summary>
+        public string TextGetProperty { get; }
+
+        /// <summary>
+        /// Sets text.
+        /// </summary>
+#pragma warning disable S2376 // Write-only properties should not be used
+        public string TextSetProperty
+        {
+            set
+            {
+                this.textSetProperty = value;
+            }
+        }
+#pragma warning restore S2376 // Write-only properties should not be used
 
         /// <summary>
         /// Gets or sets the text.
