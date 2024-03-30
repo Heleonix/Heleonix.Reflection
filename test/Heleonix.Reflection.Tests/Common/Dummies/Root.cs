@@ -12,12 +12,10 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
     {
 #pragma warning disable CA1051 // Do not declare visible instance fields
 #pragma warning disable SA1401 // Fields must be private
-#pragma warning disable S1104 // Fields should not have public accessibility
         /// <summary>
         /// Gets or sets the sub item field.
         /// </summary>
         public SubItem SubItemField = new SubItem();
-#pragma warning restore S1104 // Fields should not have public accessibility
 #pragma warning restore SA1401 // Fields must be private
 #pragma warning restore CA1051 // Do not declare visible instance fields
 
@@ -31,12 +29,9 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// </summary>
         public SubItem SubItemProperty { get; set; } = new SubItem();
 
-#pragma warning disable CA1819 // Properties should not return arrays
-
         /// <summary>
         /// Gets or sets an array of primitive items.
         /// </summary>
         public string[] ItemsProperty { get; set; } = new string[] { "111", "222", "333", "444", "555" };
-#pragma warning restore CA1819 // Properties should not return arrays
     }
 }

@@ -1,407 +1,133 @@
 # Heleonix.Reflection
 
+[![Release: .NET / NuGet](https://github.com/Heleonix/Heleonix.Reflection/actions/workflows/release-net-nuget.yml/badge.svg)](https://github.com/Heleonix/Heleonix.Reflection/actions/workflows/release-net-nuget.yml)
+
 Provides reflection functionality to search and invoke type members, search types, generate delegates etc.
 
 ## Install
 
 https://www.nuget.org/packages/Heleonix.Reflection
 
-## API
+## Documentation
 
-### Heleonix.Reflection.Reflector
+See [Heleonix.Reflection](https://heleonix.github.io/docs/Heleonix.Reflection)
 
-Provides functionality for working with reflection.
+## Examples
 
-#### Methods
+```csharp
+var dt = DateTime.Now;
 
-* `public static MemberInfo[] GetInfo(object instance, Type type, string memberPath, Type[] parameterTypes = null, BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public)`
+var info = Reflector.GetInfo(instance: dt, type: null, memberPath: "TimeOfDay.Negate");
 
-  Gets information about members.
+// info[0].Name == "Negate";
+// info[0].MemberType == MemberTypes.Property;
+```
 
-  ##### Parameters
+```csharp
+var path = Reflector.GetMemberPath<DateTime>(dt => dt.TimeOfDay.Negate());
 
-  - `instance`: A root object.
+// path: "TimeOfDay.Negate"
+```
 
-  - `type`: A type of a root object. If `instance` is not `null`, then its type is used instead.
+```csharp
+var success = Reflector.Get(DateTime.Now, null, "TimeOfDay.Hours", out int value);
 
-  - `memberPath`: A path to a member.
+// success == true;
+// value == DateTime.Now.TimeOfDay.Hours;
 
-  - `parameterTypes`: Types of parameters to find methods or constructors. If `null` is passed, then types of parameters are ignored.
+or
 
-  - `bindingFlags`: Defines binding flags to find members.
+var success = Reflector.Get(typeof(int), null, "CustomAttributes[0].AttributeType", out int value);
 
-  ##### Exceptions
+// success == true;
+// value == typeof(int).CustomAttributes.First().AttributeType;
 
-  - `TargetException`: An intermediate member on a path threw an exception. See inner exception for details.
+or
 
-  ##### Returns
+var success = Reflector.Get(typeof(int), null, "CustomAttributes[0]", out int value);
 
-  Information about found members or an empty array if no members are found or they are not reachable or they are not accessible.
+// success == true;
+// value == typeof(int).CustomAttributes.First();
+```
 
-  ##### Example
+```csharp
+public class Root
+{
+    public Child Child { get; set; } = new Child();
+    public Child[] Children { get; set; } = new Child[] { new Child(), new Child() };
+}
 
-  ```csharp
-  var dt = DateTime.Now;
+public class Child { public int Value { get; set; } }
 
-  var info = Reflector.GetInfo(instance: dt, type: null, memberPath: "TimeOfDay.Negate");
+var root = new Root();
 
-  // info[0].Name == "Negate";
-  // info[0].MemberType == MemberTypes.Property;
-  ```
+var success1 = Reflector.Set(root, null, "Child.Value", 111);
+var success2 = Reflector.Set(root, null, "Children[0].Value", 222);
+var success3 = Reflector.Set(root, null, "Children[1]", new Child() { Value = 333 });
 
-* `public static bool IsStatic(PropertyInfo info)`
+// success1 == true;
+// success2 == true;
+// success3 == true;
 
-  Determines whether the specified property is static by its getter (if it is defined) or by its setter (if it is defined).
+// root.Child.Value == 111;
+// root.Children[0].Value == 222;
+// root.Children[1].Value == 333;
+```
 
-* `public static Type[] GetTypes(string simpleName)`
+```csharp
+var success = Reflector.Invoke(DateTime.Now, null, "Date.AddYears", new[] { typeof(int) }, out DateTime result, arguments: 10);
 
-  Gets the types by a simple name (a name without namespace) in the calling assembly and in the assemblies loaded into the current domain.
+// success == true;
+// result.Year == DateTime.Now.Date.Year + 10;
+```
 
-* `public static string GetMemberPath<TObject>(Expression<Func<TObject, object>> memberPath)`
+```csharp
+var getter = Reflector.CreateGetter(dt => dt.Date.Month);
 
-  Gets a path to a member which returns some type.
+var value = getter(DateTime.Now);
 
-  ##### Example
+// value == DateTime.Now.Date.Month;
+```
 
-  ```csharp
-  var path = Reflector.GetMemberPath<DateTime>(dt => dt.TimeOfDay.Negate());
+```csharp
+public class Root { public Child Child { get; set; } = new Child(); }
+public class Child { public int Value { get; set; } }
 
-  // path: "TimeOfDay.Negate"
-  ```
+var setter = Reflector.CreateSetter{Root, int}(r => r.Child.Value);
+var root = new Root();
 
-* `public static string GetMemberPath<TObject>(Expression<Action<TObject>> memberPath)`
+setter(root, 12345);
 
-  Gets a path to a member which returns `void`.
+// root.Child.Value == 12345;
+```
 
-  ##### Example
+```csharp
+public class Root { public Child Child { get; set; } = new Child(); }
+public class Child { public int Value { get; set; } }
 
-  ```csharp
-  var path = Reflector.GetMemberPath<List<int>>(list => list.Clear());
+var setter = Reflector.CreateSetter{Root, int}("Child.Value", typeof(Root));
+var root = new Root();
 
-  // path: "Clear"
-  ```
-
-* `public static string GetMemberPath(LambdaExpression memberPath)`
-
-  Gets a path to a member using the specified (probably dynamically built) expression.
-
-  ##### Returns
-
-  A name of a member or an empty string if `expression` is `null`.
-
-* `public static bool Get<TReturn>(object instance, Type type, string memberPath, out TReturn value, BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public)`
-
-  Gets a value by the provided path.
-
-  ##### Parameters
-
-  - `instance`: A root object.
-
-  - `type`: A type of a root object. If `instance` is not `null`, then its type is used instead.
-
-  - `memberPath`: A path to a member.
-
-  - `value`: A gotten value.
-
-  - `bindingFlags`: Binding flags to find members.
-
-  ##### Exceptions
-
-  - `TargetException`: Target thrown an exception during execution. See inner exception for details.
-
-  ##### Returns
-
-  `true` in case of success, otherwise `false` if `memberPath` is `null` or empty
-  or
-  `instance` is `null` and `type` is `null`
-  or
-  a target member or one of intermediate members was not found
-  or
-  a member is not static and its container is null
-  or
-  a target member or an intermediate member is neither `PropertyInfo` nor `FieldInfo`
-  or
-  a target value is not of type `TReturn`.
-
-  ##### Example
-
-  ```csharp
-  var success = Reflector.Get(DateTime.Now, null, "TimeOfDay.Hours", out int value);
-
-  // success == true;
-  // value == DateTime.Now.TimeOfDay.Hours;
-
-  or
-
-  var success = Reflector.Get(typeof(int), null, "CustomAttributes[0].AttributeType", out int value);
-
-  // success == true;
-  // value == typeof(int).CustomAttributes.First().AttributeType;
-
-  or
-
-  var success = Reflector.Get(typeof(int), null, "CustomAttributes[0]", out int value);
-
-  // success == true;
-  // value == typeof(int).CustomAttributes.First();
-  ```
-
-* `public static bool Set(object instance, Type type, string memberPath, object value, BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public)`
-
-  Sets a provided value by the provided path.
-
-  ##### Parameters
-
-  - `instance`: A root object.
-
-  - `type`: A type of a root object. If `instance` is not `null`, then its type is used instead.
-
-  - `memberPath`: A path to a member.
-
-  - `value`: A value to be set.
-
-  - `bindingFlags`: Binding flags to find members.
-
-  ##### Exceptions
-
-  - see exceptions of `PropertyInfo.SetValue(object, object, object[])`
-
-  ##### Returns
-
-  `true` in case of success, otherwise `false` if `memberPath` is `null` or empty
-  or
-  `instance` is `null` and `type` is `null`
-  or
-  a target member or one of intermediate members was not found
-  or
-  a member is not static and its container is null
-  or
-  a target member or an intermediate member is neither `PropertyInfo` nor `FieldInfo`.
-
-  ##### Example
-
-  ```csharp
-  public class Root
-  {
-      public Child Child { get; set; } = new Child();
-      public Child[] Children { get; set; } = new Child[] { new Child(), new Child() };
-  }
-
-  public class Child { public int Value { get; set; } }
-
-  var root = new Root();
-
-  var success1 = Reflector.Set(root, null, "Child.Value", 111);
-  var success2 = Reflector.Set(root, null, "Children[0].Value", 222);
-  var success3 = Reflector.Set(root, null, "Children[1]", new Child() { Value = 333 });
-
-  // success1 == true;
-  // success2 == true;
-  // success3 == true;
-
-  // root.Child.Value == 111;
-  // root.Children[0].Value == 222;
-  // root.Children[1].Value == 333;
-  ```
-* `public static bool SetCoerced(object instance, Type type, string memberPath, object value, BindingFlags bindingFlags = DefaultBindingFlags)`
-  Sets a provided value by the provided path with coercion into the target member type.
-
-  ##### Parameters
-
-  - `instance`: A root object.
-  - `type`: A type of a root object. If `instance`is not `null`, then its type is used instead.
-  - `memberPath`: A path to a member.
-  - `value`: A value to be set.
-  - `bindingFlags`: Binding flags to find members.
-
-  ##### Exceptions
-
-  - see exceptions of `PropertyInfo.SetValue(object, object, object[])`
-
-  ##### Returns
-
-  `true` in case of success, otherwise `false` if `memberPath` is `null` or empty
-  or
-  `instance` is `null` and `type` is `null`
-  or
-  a target member or one of intermediate members was not found
-  or
-  a member is not static and its container is null
-  or
-  a target member or an intermediate member is neither `PropertyInfo` nor `FieldInfo`.
-
-  ##### Example
-
-  ```csharp
-  public class Root
-  {
-      public Child Child { get; set; } = new Child();
-      public Child[] Children { get; set; } = new Child[] { new Child(), new Child() };
-  }
-
-  public class Child { public int Value { get; set; } }
-
-  var root = new Root();
-
-  var success1 = Reflector.Set(root, null, "Child.Value", 111);
-  var success2 = Reflector.Set(root, null, "Children[0].Value", 222);
-  var success3 = Reflector.Set(root, null, "Children[1]", new Child() { Value = 333 });
-
-  // success1 == true;
-  // success2 == true;
-  // success3 == true;
-
-  // root.Child.Value == 111;
-  // root.Children[0].Value == 222;
-  // root.Children[1].Value == 333.
-
-* `public static bool Invoke<TReturn>(object instance, Type type, string memberPath, Type[] parameterTypes, out TReturn returnValue, BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public, params object[] arguments)`
-
-  Invokes a method or constructor by the provided path. Use "ctor" to invoke constructors, i.e."Item.SubItem.ctor".
-
-  ##### Parameters
-
-  - `instance`: A root object.
-
-  - `type`: A type of a root object.
-
-  - `instance`: is not `null`, then its runtime type is used instead.
-
-  - `memberPath`: A path to a member to invoke.
-
-  - `parameterTypes`: Types of parameters to find a method by. Pass `null` to ignore parameters, or an empty array for parameterless methods.
-
-  - `returnValue`: A value to be returned if a member is not void.
-
-  - `bindingFlags`: Binding flags to find members.
-
-  - `arguments`: Arguments to be passed into a member to invoke.
-
-  ##### Exceptions
-
-  - `TargetException`: Target thrown an exception during execution. See inner exception for details.
-
-  ##### Returns
-
-  `true` in case of success, otherwise `false` if `memberPath` is `null` or empty
-  or
-  `instance` is `null` and `type` is `null`
-  or
-  a target member or one of intermediate members was not found
-  or
-  an intermediate member is neither `PropertyInfo` nor `FieldInfo`
-  or
-  an intermediate member is not static and its container is null
-  or
-  a target member is not `MethodBase`
-  or
-  a target value is not of type `TReturn`.
-
-  ##### Example
-
-  ```csharp
-  var success = Reflector.Invoke(DateTime.Now, null, "Date.AddYears", new[] { typeof(int) }, out DateTime result, arguments: 10);
-
-  // success == true;
-  // result.Year == DateTime.Now.Date.Year + 10;
-  ```
-
-* `public static Func<TObject, TReturn> CreateGetter<TObject, TReturn>(Expression<Func<TObject, TReturn>> memberPath)`
-
-  Creates a getter. Works with exactly specified types without conversion. This is the fastest implementation.
-
-  ##### Parameters
-
-  - `memberPath`: The path to a member.
-
-  ##### Returns
-
-  A compiled delegate to get a value or `null` if the `memberPath` is `null`.
-
-  ##### Example
-
-  ```csharp
-  var getter = Reflector.CreateGetter(dt => dt.Date.Month);
-
-  var value = getter(DateTime.Now);
-
-  // value == DateTime.Now.Date.Month;
-  ```
-
-* `public static Func<TObject, TReturn> CreateGetter<TObject, TReturn>(string memberPath, Type containerType = null)`
-
-  Creates a getter. Can create getters with any convertable types for polimorphic usage.
-
-  ##### Parameters
-
-  - `memberPath`: The path to a member.
-
-  - `containerType`: A type of a container's object which contains the member. If null is specified, then `TObject` is used without conversion.
-
-  ##### Returns
-
-  A compiled delegate to get a value or `null` if the `memberPath` is `null` or empty.
-
-  ##### Example
-
-  ```csharp
-  var getter = Reflector.CreateGetter{object, object}("Date.Month", typeof(DateTime));
-
-  var value = getter(DateTime.Now);
-
-  // value == DateTime.Now.Date.Month;
-  ```
-
-* `public static Action<TObject, TValue> CreateSetter<TObject, TValue>(Expression<Func<TObject, TValue>> memberPath)`
-
-  Creates the setter. Works with exactly specified types without conversion. This is the fastest implementation.
-
-  ##### Parameters
-
-  - `memberPath`: The path to a member.
-
-  ##### Returns
-
-  A compiled delegate to set a value or `null` if `memberPath` is `null`.
-
-  ##### Example
-
-  ```csharp
-  public class Root { public Child Child { get; set; } = new Child(); }
-  public class Child { public int Value { get; set; } }
-
-  var setter = Reflector.CreateSetter{Root, int}(r => r.Child.Value);
-  var root = new Root();
-
-  setter(root, 12345);
-
-  // root.Child.Value == 12345;
-  ```
-
-* `public static Action<TObject, TValue> CreateSetter<TObject, TValue>(string memberPath, Type containerType = null)`
-
-  Creates a setter. Can create setters with any convertable types for polimorphic usage.
-
-  ##### Parameters
-
-  - `memberPath`: The path to a member.
-
-  - `containerType`: A type of a container's object which contains the member. If null is specified, then `TObject` is used without conversion.
-
-  ##### Returns
-
-  A compiled delegate to set a value or `null` if the `memberPath` is `null` or empty.
-
-  ##### Example
-
-  ```csharp
-  public class Root { public Child Child { get; set; } = new Child(); }
-  public class Child { public int Value { get; set; } }
-
-  var setter = Reflector.CreateSetter{Root, int}("Child.Value", typeof(Root));
-  var root = new Root();
-
-  setter(root, 12345);
-
-  // root.Child.Value == 12345;
-  ```
+setter(root, 12345);
+
+// root.Child.Value == 12345;
+```
+
+## Contribution Guideline
+
+1. [Create a fork](https://github.com/Heleonix/Heleonix.Reflection/fork) from the main repository
+2. Implement whatever is needed
+3. [Create a Pull Request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork).
+   Make sure the assigned [Checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/about-status-checks#checks) pass successfully.
+   You can watch the progress in the [PR: .NET](https://github.com/Heleonix/Heleonix.Reflection/actions/workflows/pr-net.yml) GitHub workflows
+4. [Request review](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/requesting-a-pull-request-review) from the code owner
+5. Once approved, merge your Pull Request via [Squash and merge](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges#squash-and-merge-your-commits)
+
+   > **IMPORTANT**  
+   > While merging, enter a [Conventional Commits](https://www.conventionalcommits.org/) commit message.
+   > This commit message will be used in automatically generated [Github Release Notes](https://github.com/Heleonix/Heleonix.Reflection/releases)
+   > and [NuGet Release Notes](https://www.nuget.org/packages/Heleonix.Reflection/#releasenotes-body-tab)
+
+6. Monitor the [Release: .NET / NuGet](https://github.com/Heleonix/Heleonix.Reflection/actions/workflows/release-net-nuget.yml)
+   GitHub workflow to make sure your changes are delivered successfully
+7. In case of any issues, please contact [heleonix.sln@gmail.com](mailto:heleonix.sln@gmail.com)
