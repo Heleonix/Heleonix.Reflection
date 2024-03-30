@@ -14,12 +14,10 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
     {
 #pragma warning disable CA1051 // Do not declare visible instance fields
 #pragma warning disable SA1401 // Fields must be private
-#pragma warning disable S1104 // Fields should not have public accessibility
         /// <summary>
         /// Gets or sets the sub item field.
         /// </summary>
         public SubSubItem SubSubItemField = new SubSubItem();
-#pragma warning restore S1104 // Fields should not have public accessibility
 #pragma warning restore SA1401 // Fields must be private
 #pragma warning restore CA1051 // Do not declare visible instance fields
 

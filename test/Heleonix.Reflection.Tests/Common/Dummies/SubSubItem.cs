@@ -13,21 +13,16 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
     /// </summary>
     public class SubSubItem
     {
-#pragma warning disable S1104 // Fields should not have public accessibility
 #pragma warning disable SA1401 // Fields must be private
 #pragma warning disable CA2211 // Non-constant fields should not be visible
-#pragma warning disable S2223 // Non-constant static fields should not be visible
 
         /// <summary>
         /// The static text field.
         /// </summary>
         public static string StaticTextField;
-#pragma warning restore S2223 // Non-constant static fields should not be visible
 #pragma warning restore CA2211 // Non-constant fields should not be visible
 #pragma warning restore SA1401 // Fields must be private
-#pragma warning restore S1104 // Fields should not have public accessibility
 
-#pragma warning disable S1104 // Fields should not have public accessibility
 #pragma warning disable SA1401 // Fields must be private
 #pragma warning disable CA1051 // Do not declare visible instance fields
 
@@ -42,12 +37,13 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         public EnumItem EnumField;
 #pragma warning restore CA1051 // Do not declare visible instance fields
 #pragma warning restore SA1401 // Fields must be private
-#pragma warning restore S1104 // Fields should not have public accessibility
 
         /// <summary>
         /// Holds the value of the static text property.
         /// </summary>
+#pragma warning disable S4487 // Unread "private" fields should be removed
         private static string staticTextSetProperty;
+#pragma warning restore S4487 // Unread "private" fields should be removed
 
         /// <summary>
         /// Provides a list for the indexer.
@@ -57,7 +53,9 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// <summary>
         /// Holds the value of the static text property.
         /// </summary>
+#pragma warning disable S4487 // Unread "private" fields should be removed
         private string textSetProperty;
+#pragma warning restore S4487 // Unread "private" fields should be removed
 
         /// <summary>
         /// Gets text.

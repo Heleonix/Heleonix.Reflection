@@ -135,7 +135,7 @@ namespace Heleonix.Reflection
             return Expression
                 .Lambda<Action<TObject, TValue>>(
                     Expression.Assign(memberPath.Body, param),
-                    memberPath.Parameters.First(),
+                    memberPath.Parameters[0],
                     param)
                 .Compile();
         }
