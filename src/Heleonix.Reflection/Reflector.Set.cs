@@ -234,14 +234,7 @@ namespace Heleonix.Reflection
                 {
                     if (dot != -1)
                     {
-                        try
-                        {
-                            container = GetElementAt(container, index);
-                        }
-                        catch (ArgumentOutOfRangeException)
-                        {
-                            return false;
-                        }
+                        container = GetElementAt(container, index);
 
                         if (container == null)
                         {

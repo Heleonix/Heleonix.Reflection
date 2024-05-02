@@ -85,21 +85,16 @@ namespace Heleonix.Reflection
                 var size = (dot == -1) ? memberPath.Length : dot;
                 var prop = memberPath.Substring(0, size);
 
-                object index = null;
+                var index = -1;
                 var indexerEnd = prop.LastIndexOf(']');
 
                 if (indexerEnd != -1)
                 {
                     var indexerStart = prop.IndexOf('[');
 
-                    if (int.TryParse(prop.Substring(indexerStart + 1, indexerEnd - indexerStart - 1), out int result))
-                    {
-                        index = result;
-                    }
-                    else
-                    {
-                        index = prop.Substring(indexerStart + 1, indexerEnd - indexerStart - 1);
-                    }
+                    index = int.Parse(
+                        prop.Substring(indexerStart + 1, indexerEnd - indexerStart - 1),
+                        CultureInfo.CurrentCulture);
 
                     prop = prop.Substring(0, indexerStart);
                 }
@@ -117,23 +112,16 @@ namespace Heleonix.Reflection
                     return false;
                 }
 
-                if (index != null)
+                if (index != -1)
                 {
-                    try
-                    {
-                        container = GetElementAt(container, index);
-                    }
-                    catch (ArgumentOutOfRangeException)
-                    {
-                        value = default;
-                        return false;
-                    }
+                    container = GetElementAt(container, index);
 
                     if (container == null)
                     {
                         if (dot != -1)
                         {
                             value = default;
+
                             return false;
                         }
                     }

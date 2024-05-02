@@ -7,11 +7,7 @@ namespace Heleonix.Reflection
 {
     using System;
     using System.Collections;
-    using System.Collections.Generic;
-    using System.ComponentModel;
-    using System.Net.Http.Headers;
     using System.Reflection;
-    using Heleonix.Reflection;
 
     /// <summary>
     /// Provides functionality for working with reflection.
@@ -79,49 +75,34 @@ namespace Heleonix.Reflection
         /// <param name="container">A container to get an element from.</param>
         /// <param name="index">An index to get an elementa at.</param>
         /// <returns>An element by the specified <paramref name="index"/>.</returns>
-        private static object GetElementAt(object container, object index)
+        private static object GetElementAt(object container, int index)
         {
-            if (container is IDictionary)
-            {
-                var objectAsDictionary = ((IEnumerable)container).Cast<object>().AsEnumerable().ToDictionary(px => px.GetType().GetProperty("Key").GetValue(px), pv => pv.GetType().GetProperty("Value").GetValue(pv));
-
-                try
-                {
-                    return objectAsDictionary.First(pair => pair.Key == index || pair.Key.ToString() == index.ToString()).Value;
-                }
-                catch (InvalidOperationException)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(index));
-                }
-            }
-
             if (container is IList list)
             {
-                if ((int)index >= list.Count)
+                if (index >= list.Count)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(index));
+                    return null;
                 }
 
-                return list[(int)index];
+                return list[index];
             }
 
             if (container is IEnumerable enumerable)
             {
                 var enumerator = enumerable.GetEnumerator();
-                var intIndex = (int)index;
 
                 while (enumerator.MoveNext())
                 {
-                    if (intIndex == 0)
+                    if (index == 0)
                     {
                         return enumerator.Current;
                     }
 
-                    intIndex--;
+                    index--;
                 }
             }
 
-            throw new ArgumentOutOfRangeException(nameof(index));
+            return null;
         }
 
         /// <summary>
