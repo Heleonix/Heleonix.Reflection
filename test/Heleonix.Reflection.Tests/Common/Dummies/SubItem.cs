@@ -39,11 +39,6 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         /// <summary>
         /// Gets or sets the sub sub items dictionary property.
         /// </summary>
-        public Dictionary<string, SubSubItem> SubSubItemsDictionaryProperty { get; set; } =
-            new ()
-            {
-                { "O n e", new SubSubItem { TextProperty = "T e x t - 1" } },
-                { "T w o", new SubSubItem { TextProperty = "T e x t - 2" } },
-            };
+        public Dictionary<string, SubSubItem> SubSubItemsDictionaryProperty { get; set; } = new Dictionary<string, SubSubItem>();
     }
 }
