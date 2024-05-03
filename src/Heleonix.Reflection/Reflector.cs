@@ -25,12 +25,10 @@ namespace Heleonix.Reflection
         /// </summary>
         private const MemberTypes PropertyOrFieldMemberTypes = MemberTypes.Property | MemberTypes.Field;
 
-#pragma warning disable CA1825 // Avoid zero-length array allocations.
         /// <summary>
         /// The empty member information.
         /// </summary>
-        private static readonly MemberInfo[] EmptyMemberInfo = new MemberInfo[0];
-#pragma warning restore CA1825 // Avoid zero-length array allocations.
+        private static readonly MemberInfo[] EmptyMemberInfo = Array.Empty<MemberInfo>();
 
         /// <summary>
         /// Determines whether the specified property is static by its getter (if it is defined) or by its setter (if it is defined).
@@ -75,30 +73,36 @@ namespace Heleonix.Reflection
         /// <param name="container">A container to get an element from.</param>
         /// <param name="index">An index to get an elementa at.</param>
         /// <returns>An element by the specified <paramref name="index"/>.</returns>
-        private static object GetElementAt(object container, int index)
+        private static object GetElementAt(object container, object index)
         {
+            if (container is IDictionary dictionary)
+            {
+                return dictionary.Contains(index) ? dictionary[index] : null;
+            }
+
             if (container is IList list)
             {
-                if (index >= list.Count)
+                if ((int)index >= list.Count)
                 {
                     return null;
                 }
 
-                return list[index];
+                return list[(int)index];
             }
 
             if (container is IEnumerable enumerable)
             {
                 var enumerator = enumerable.GetEnumerator();
+                var intIndex = (int)index;
 
                 while (enumerator.MoveNext())
                 {
-                    if (index == 0)
+                    if (intIndex == 0)
                     {
                         return enumerator.Current;
                     }
 
-                    index--;
+                    intIndex--;
                 }
             }
 

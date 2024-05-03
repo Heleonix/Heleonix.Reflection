@@ -8,7 +8,6 @@ namespace Heleonix.Reflection
     using System;
     using System.Collections;
     using System.ComponentModel;
-    using System.Globalization;
     using System.Reflection;
 
     /// <summary>
@@ -188,7 +187,7 @@ namespace Heleonix.Reflection
 
             var container = instance;
             var containerType = container?.GetType() ?? type;
-            int index;
+            object index;
             MemberInfo memberInfo;
 
             while (true)
@@ -199,15 +198,15 @@ namespace Heleonix.Reflection
 
                 var indexerEnd = prop.LastIndexOf(']');
 
-                index = -1;
+                index = null;
 
                 if (indexerEnd != -1)
                 {
                     var indexerStart = prop.IndexOf('[');
 
-                    index = int.Parse(
-                        prop.Substring(indexerStart + 1, indexerEnd - indexerStart - 1),
-                        CultureInfo.CurrentCulture);
+                    var indexValue = prop.Substring(indexerStart + 1, indexerEnd - indexerStart - 1);
+
+                    index = int.TryParse(indexValue, out int result) ? result : indexValue;
 
                     prop = prop.Substring(0, indexerStart);
                 }
@@ -216,7 +215,7 @@ namespace Heleonix.Reflection
                     .GetTypeInfo()
                     .GetMember(prop, MemberTypes.Field | MemberTypes.Property, bindingFlags);
 
-                if (dot == -1 && index == -1)
+                if (dot == -1 && index == null)
                 {
                     memberInfo = memberInfos.Length > 0 ? memberInfos[0] : null;
 
@@ -230,7 +229,7 @@ namespace Heleonix.Reflection
                     return false;
                 }
 
-                if (index != -1)
+                if (index != null)
                 {
                     if (dot != -1)
                     {
@@ -266,7 +265,7 @@ namespace Heleonix.Reflection
                     value = CoerceValue(pi.PropertyType, value);
                 }
 
-                pi.SetValue(container, value, index != -1 ? new object[] { index } : null);
+                pi.SetValue(container, value, index != null ? new object[] { index } : null);
 
                 return true;
             }
