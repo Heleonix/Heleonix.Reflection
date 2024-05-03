@@ -77,7 +77,15 @@ namespace Heleonix.Reflection
         {
             if (container is IDictionary dictionary)
             {
-                return dictionary.Contains(index) ? dictionary[index] : null;
+                foreach (var key in dictionary.Keys)
+                {
+                    if (key.Equals(index) || Convert.ToString(key) == Convert.ToString(index))
+                    {
+                        return dictionary[key];
+                    }
+                }
+
+                return null;
             }
 
             if (container is IList list)

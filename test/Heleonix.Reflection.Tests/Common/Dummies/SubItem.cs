@@ -37,8 +37,13 @@ namespace Heleonix.Reflection.Tests.Common.Dummies
         public IEnumerable<SubSubItem> SubSubItemsEnumerableProperty { get; set; } = new Queue<SubSubItem>();
 
         /// <summary>
-        /// Gets or sets the sub sub items dictionary property.
+        /// Gets or sets the sub sub items string dictionary property.
         /// </summary>
-        public Dictionary<string, SubSubItem> SubSubItemsDictionaryProperty { get; set; } = new Dictionary<string, SubSubItem>();
+        public Dictionary<string, SubSubItem> SubSubItemsStringDictionaryProperty { get; set; } = new Dictionary<string, SubSubItem>();
+
+        /// <summary>
+        /// Gets or sets the sub sub items int dictionary property.
+        /// </summary>
+        public Dictionary<int, SubSubItem> SubSubItemsIntDictionaryProperty { get; set; } = new Dictionary<int, SubSubItem>();
     }
 }

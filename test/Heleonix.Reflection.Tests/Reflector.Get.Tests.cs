@@ -194,12 +194,12 @@ namespace Heleonix.Reflection.Tests
 
                         And("the indexer is in a middle of the memberPath", () =>
                         {
-                            And("the collection is a dictionary", () =>
+                            And("the collection is a string-keyed dictionary", () =>
                             {
-                                instance.SubItemProperty.SubSubItemsDictionaryProperty.Add(
+                                instance.SubItemProperty.SubSubItemsStringDictionaryProperty.Add(
                                     "First Key",
                                     new SubSubItem { TextProperty = "First Value" });
-                                memberPath = "SubItemProperty.SubSubItemsDictionaryProperty[First Key].TextProperty";
+                                memberPath = "SubItemProperty.SubSubItemsStringDictionaryProperty[First Key].TextProperty";
 
                                 Should("provide the target value", () =>
                                 {
@@ -209,7 +209,32 @@ namespace Heleonix.Reflection.Tests
 
                                 And("the key does not exist", () =>
                                 {
-                                    memberPath = "SubItemProperty.SubSubItemsDictionaryProperty[NO KEY].TextProperty";
+                                    memberPath = "SubItemProperty.SubSubItemsStringDictionaryProperty[NO KEY].TextProperty";
+
+                                    Should("provide the default value and return false", () =>
+                                    {
+                                        Assert.That(result, Is.Null);
+                                        Assert.That(returnValue, Is.False);
+                                    });
+                                });
+                            });
+
+                            And("the collection is an int-keyed dictionary", () =>
+                            {
+                                instance.SubItemProperty.SubSubItemsIntDictionaryProperty.Add(
+                                    12345,
+                                    new SubSubItem { TextProperty = "First Value" });
+                                memberPath = "SubItemProperty.SubSubItemsIntDictionaryProperty[12345].TextProperty";
+
+                                Should("provide the target value", () =>
+                                {
+                                    Assert.That(result, Is.EqualTo("First Value"));
+                                    Assert.That(returnValue, Is.True);
+                                });
+
+                                And("the key does not exist", () =>
+                                {
+                                    memberPath = "SubItemProperty.SubSubItemsStringDictionaryProperty[111].TextProperty";
 
                                     Should("provide the default value and return false", () =>
                                     {

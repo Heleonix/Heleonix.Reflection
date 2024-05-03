@@ -206,25 +206,25 @@ namespace Heleonix.Reflection.Tests
 
                         And("the indexer is in a middle of the memberPath", () =>
                         {
-                            And("the collection is a dictionary", () =>
+                            And("the collection is a string-keyed dictionary", () =>
                             {
-                                instance.SubItemProperty.SubSubItemsDictionaryProperty.Add(
+                                instance.SubItemProperty.SubSubItemsStringDictionaryProperty.Add(
                                     "First Key",
                                     new SubSubItem { TextProperty = "First Value" });
-                                memberPath = "SubItemProperty.SubSubItemsDictionaryProperty[First Key].TextProperty";
+                                memberPath = "SubItemProperty.SubSubItemsStringDictionaryProperty[First Key].TextProperty";
                                 value = "New First Value";
 
                                 Should("set the value and return true", () =>
                                 {
                                     Assert.That(
-                                        instance.SubItemProperty.SubSubItemsDictionaryProperty["First Key"].TextProperty,
+                                        instance.SubItemProperty.SubSubItemsStringDictionaryProperty["First Key"].TextProperty,
                                         Is.EqualTo(value));
                                     Assert.That(returnValue, Is.True);
                                 });
 
                                 And("the key does not exist", () =>
                                 {
-                                    memberPath = "SubItemProperty.SubSubItemsDictionaryProperty[NO KEY].TextProperty";
+                                    memberPath = "SubItemProperty.SubSubItemsStringDictionaryProperty[NO KEY].TextProperty";
 
                                     Should("return false", () =>
                                     {
