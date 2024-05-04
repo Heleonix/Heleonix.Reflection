@@ -233,9 +233,9 @@ namespace Heleonix.Reflection
                 {
                     if (dot != -1)
                     {
-                        container = GetElementAt(container, index);
+                        var isElementFound = GetElementAt(container, index, out container);
 
-                        if (container == null)
+                        if (!isElementFound || container == null)
                         {
                             return false;
                         }

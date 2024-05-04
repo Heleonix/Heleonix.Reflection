@@ -72,8 +72,9 @@ namespace Heleonix.Reflection
         /// </summary>
         /// <param name="container">A container to get an element from.</param>
         /// <param name="index">An index to get an elementa at.</param>
-        /// <returns>An element by the specified <paramref name="index"/>.</returns>
-        private static object GetElementAt(object container, object index)
+        /// <param name="element">The elemebt retrieved by the specified <paramref name="index"/> or null.</param>
+        /// <returns><c>true</c>, if an element is found by the specified <paramref name="index"/>, otherwise <c>false</c>.</returns>
+        private static bool GetElementAt(object container, object index, out object element)
         {
             if (container is IDictionary dictionary)
             {
@@ -81,40 +82,53 @@ namespace Heleonix.Reflection
                 {
                     if (key.Equals(index) || Convert.ToString(key) == Convert.ToString(index))
                     {
-                        return dictionary[key];
+                        element = dictionary[key];
+
+                        return true;
                     }
                 }
 
-                return null;
+                element = null;
+
+                return false;
             }
+
+            var intIndex = (int)index;
 
             if (container is IList list)
             {
-                if ((int)index >= list.Count)
+                if (intIndex >= list.Count)
                 {
-                    return null;
+                    element = null;
+
+                    return false;
                 }
 
-                return list[(int)index];
+                element = list[intIndex];
+
+                return true;
             }
 
             if (container is IEnumerable enumerable)
             {
                 var enumerator = enumerable.GetEnumerator();
-                var intIndex = (int)index;
 
                 while (enumerator.MoveNext())
                 {
                     if (intIndex == 0)
                     {
-                        return enumerator.Current;
+                        element = enumerator.Current;
+
+                        return true;
                     }
 
                     intIndex--;
                 }
             }
 
-            return null;
+            element = null;
+
+            return false;
         }
 
         /// <summary>

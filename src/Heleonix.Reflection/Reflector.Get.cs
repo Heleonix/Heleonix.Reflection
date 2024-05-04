@@ -113,7 +113,14 @@ namespace Heleonix.Reflection
 
                 if (index != null)
                 {
-                    container = GetElementAt(container, index);
+                    var isElementFound = GetElementAt(container, index, out container);
+
+                    if (!isElementFound)
+                    {
+                        value = default;
+
+                        return false;
+                    }
 
                     if (container == null)
                     {
