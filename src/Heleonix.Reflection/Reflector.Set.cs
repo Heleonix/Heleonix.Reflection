@@ -39,6 +39,8 @@ namespace Heleonix.Reflection
         /// a target member or an intermediate member is neither <see cref="PropertyInfo"/> nor <see cref="FieldInfo"/>.
         /// </returns>
         /// <example>
+        /// This code demonstrates common scenarios.
+        /// <code>
         /// public class Root
         /// {
         ///     public Child Child { get; set; } = new Child();
@@ -60,6 +62,18 @@ namespace Heleonix.Reflection
         /// // root.Child.Value == 111;
         /// // root.Children[0].Value == 222;
         /// // root.Children[1].Value == 333.
+        /// </code>
+        /// This code demonstrates usage of dictionaries.
+        /// <code>
+        /// var rec = new Record(new Dictionary&lt;string, string&gt; { { "K e y", "V a l u e" } });
+        ///
+        /// var success = Reflector.Set(rec, null, "Dic[K e y]", "New Value");
+        ///
+        /// record class Record(Dictionary&lt;string, string&gt; Dic);
+        ///
+        /// // success == true;
+        /// // value == record.Dic["K e y"];
+        /// </code>
         /// </example>
         public static bool Set(
             object instance,
