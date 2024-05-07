@@ -42,6 +42,7 @@ namespace Heleonix.Reflection
         /// a target value is not of type <typeparamref name="TReturn"/>.
         /// </returns>
         /// <example>
+        /// <code>
         /// var success = Reflector.Get(DateTime.Now, null, "TimeOfDay.Hours", out int value);
         ///
         /// // success == true;
@@ -60,6 +61,18 @@ namespace Heleonix.Reflection
         ///
         /// // success == true;
         /// // value == typeof(int).CustomAttributes.First().
+        ///
+        /// or
+        ///
+        /// var rec = new Record(new Dictionary&lt;string, string&gt; { { "K e y", "V a l u e" } });
+        ///
+        /// var success = Reflector.Get(rec, null, "Dic[K e y].Length", out int value);
+        ///
+        /// record class Record(Dictionary&lt;string, string&gt; Dic);
+        ///
+        /// // success == true;
+        /// // value == rec.Dic["K e y"].Length;
+        /// </code>
         /// </example>
         public static bool Get<TReturn>(
             object instance,
