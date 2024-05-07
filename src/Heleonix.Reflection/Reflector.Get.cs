@@ -6,7 +6,6 @@
 namespace Heleonix.Reflection
 {
     using System;
-    using System.Globalization;
     using System.Reflection;
 
     /// <summary>
@@ -85,16 +84,16 @@ namespace Heleonix.Reflection
                 var size = (dot == -1) ? memberPath.Length : dot;
                 var prop = memberPath.Substring(0, size);
 
-                var index = -1;
+                object index = null;
                 var indexerEnd = prop.LastIndexOf(']');
 
                 if (indexerEnd != -1)
                 {
                     var indexerStart = prop.IndexOf('[');
 
-                    index = int.Parse(
-                        prop.Substring(indexerStart + 1, indexerEnd - indexerStart - 1),
-                        CultureInfo.CurrentCulture);
+                    var indexValue = prop.Substring(indexerStart + 1, indexerEnd - indexerStart - 1);
+
+                    index = int.TryParse(indexValue, out int result) ? result : indexValue;
 
                     prop = prop.Substring(0, indexerStart);
                 }
@@ -112,9 +111,16 @@ namespace Heleonix.Reflection
                     return false;
                 }
 
-                if (index != -1)
+                if (index != null)
                 {
-                    container = GetElementAt(container, index);
+                    var isElementFound = GetElementAt(container, index, out container);
+
+                    if (!isElementFound)
+                    {
+                        value = default;
+
+                        return false;
+                    }
 
                     if (container == null)
                     {

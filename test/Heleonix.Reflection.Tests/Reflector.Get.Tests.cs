@@ -190,10 +190,71 @@ namespace Heleonix.Reflection.Tests
                                     Assert.That(returnValue, Is.True);
                                 });
                             });
+
+                            And("the index is out of range", () =>
+                            {
+                                memberPath = "ItemsProperty[11111]";
+
+                                Should("provide default value and return false", () =>
+                                {
+                                    Assert.That(result, Is.Null);
+                                    Assert.That(returnValue, Is.False);
+                                });
+                            });
                         });
 
                         And("the indexer is in a middle of the memberPath", () =>
                         {
+                            And("the collection is a string-keyed dictionary", () =>
+                            {
+                                instance.SubItemProperty.SubSubItemsStringDictionaryProperty.Add(
+                                    "First Key",
+                                    new SubSubItem { TextProperty = "First Value" });
+                                memberPath = "SubItemProperty.SubSubItemsStringDictionaryProperty[First Key].TextProperty";
+
+                                Should("provide the target value", () =>
+                                {
+                                    Assert.That(result, Is.EqualTo("First Value"));
+                                    Assert.That(returnValue, Is.True);
+                                });
+
+                                And("the key does not exist", () =>
+                                {
+                                    memberPath = "SubItemProperty.SubSubItemsStringDictionaryProperty[NO KEY].TextProperty";
+
+                                    Should("provide the default value and return false", () =>
+                                    {
+                                        Assert.That(result, Is.Null);
+                                        Assert.That(returnValue, Is.False);
+                                    });
+                                });
+                            });
+
+                            And("the collection is an int-keyed dictionary", () =>
+                            {
+                                instance.SubItemProperty.SubSubItemsIntDictionaryProperty.Add(
+                                    12345,
+                                    new SubSubItem { TextProperty = "First Value" });
+                                memberPath = "SubItemProperty.SubSubItemsIntDictionaryProperty[12345].TextProperty";
+
+                                Should("provide the target value", () =>
+                                {
+                                    Assert.That(result, Is.EqualTo("First Value"));
+                                    Assert.That(returnValue, Is.True);
+                                });
+
+                                And("the key does not exist", () =>
+                                {
+                                    memberPath = "SubItemProperty.SubSubItemsStringDictionaryProperty[111].TextProperty";
+
+                                    Should("provide the default value and return false", () =>
+                                    {
+                                        Assert.That(result, Is.Null);
+                                        Assert.That(returnValue, Is.False);
+                                    });
+                                });
+                            });
+
                             And("the collection is a list", () =>
                             {
                                 instance.SubItemProperty.SubSubItemsListProperty.AddRange(
@@ -213,6 +274,18 @@ namespace Heleonix.Reflection.Tests
                                 And("the index is out of range", () =>
                                 {
                                     memberPath = "SubItemProperty.SubSubItemsListProperty[1000].TextProperty";
+
+                                    Should("provide default value and return false", () =>
+                                    {
+                                        Assert.That(result, Is.Null);
+                                        Assert.That(returnValue, Is.False);
+                                    });
+                                });
+
+                                And("the item by the specified index is null", () =>
+                                {
+                                    instance.SubItemProperty.SubSubItemsListProperty[0] = null;
+                                    memberPath = "SubItemProperty.SubSubItemsListProperty[0].TextProperty";
 
                                     Should("provide default value and return false", () =>
                                     {

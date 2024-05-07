@@ -25,12 +25,10 @@ namespace Heleonix.Reflection
         /// </summary>
         private const MemberTypes PropertyOrFieldMemberTypes = MemberTypes.Property | MemberTypes.Field;
 
-#pragma warning disable CA1825 // Avoid zero-length array allocations.
         /// <summary>
         /// The empty member information.
         /// </summary>
-        private static readonly MemberInfo[] EmptyMemberInfo = new MemberInfo[0];
-#pragma warning restore CA1825 // Avoid zero-length array allocations.
+        private static readonly MemberInfo[] EmptyMemberInfo = Array.Empty<MemberInfo>();
 
         /// <summary>
         /// Determines whether the specified property is static by its getter (if it is defined) or by its setter (if it is defined).
@@ -74,17 +72,41 @@ namespace Heleonix.Reflection
         /// </summary>
         /// <param name="container">A container to get an element from.</param>
         /// <param name="index">An index to get an elementa at.</param>
-        /// <returns>An element by the specified <paramref name="index"/>.</returns>
-        private static object GetElementAt(object container, int index)
+        /// <param name="element">The elemebt retrieved by the specified <paramref name="index"/> or null.</param>
+        /// <returns><c>true</c>, if an element is found by the specified <paramref name="index"/>, otherwise <c>false</c>.</returns>
+        private static bool GetElementAt(object container, object index, out object element)
         {
-            if (container is IList list)
+            if (container is IDictionary dictionary)
             {
-                if (index >= list.Count)
+                foreach (var key in dictionary.Keys)
                 {
-                    return null;
+                    if (key.Equals(index) || Convert.ToString(key) == Convert.ToString(index))
+                    {
+                        element = dictionary[key];
+
+                        return true;
+                    }
                 }
 
-                return list[index];
+                element = null;
+
+                return false;
+            }
+
+            var intIndex = (int)index;
+
+            if (container is IList list)
+            {
+                if (intIndex >= list.Count)
+                {
+                    element = null;
+
+                    return false;
+                }
+
+                element = list[intIndex];
+
+                return true;
             }
 
             if (container is IEnumerable enumerable)
@@ -93,16 +115,20 @@ namespace Heleonix.Reflection
 
                 while (enumerator.MoveNext())
                 {
-                    if (index == 0)
+                    if (intIndex == 0)
                     {
-                        return enumerator.Current;
+                        element = enumerator.Current;
+
+                        return true;
                     }
 
-                    index--;
+                    intIndex--;
                 }
             }
 
-            return null;
+            element = null;
+
+            return false;
         }
 
         /// <summary>
